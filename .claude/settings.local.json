@@ -2,7 +2,21 @@
   "permissions": {
     "allow": [
       "Bash(git --version:*)",
-      "Bash(uvx:*)"
+      "Bash(uvx:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(sed:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "WebSearch",
+      "SlashCommand(/speckit.tasks)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(git add:*)",
+      "Bash(cat:*)",
+      "Bash(zsh -c \"source ~/.zshrc && git status\")",
+      "Bash(exec zsh -c \"source ~/.zshrc && git status\")",
+      "Bash(zsh -c \"source ~/.zshrc && type exec_scmb_expand_args\")",
+      "Bash(zsh -c \"source ~/.zshrc && git add .\")"
     ],
     "deny": [],
     "ask": []
