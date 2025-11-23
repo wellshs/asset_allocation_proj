@@ -142,17 +142,17 @@
 
 ### Tests for User Story 3 (Write FIRST, ensure they FAIL)
 
-- [ ] T044 [P] [US3] Unit test for transaction cost calculation (fixed + percentage) in tests/unit/test_portfolio.py
-- [ ] T045 [P] [US3] Integration test comparing backtest with/without transaction costs in tests/integration/test_backtest_engine.py
-- [ ] T046 [P] [US3] Property-based test: transaction costs always reduce returns in tests/unit/test_portfolio.py
+- [X] T044 [P] [US3] Unit test for transaction cost calculation (fixed + percentage) in tests/unit/test_portfolio.py
+- [X] T045 [P] [US3] Integration test comparing backtest with/without transaction costs in tests/integration/test_backtest_engine.py
+- [X] T046 [P] [US3] Property-based test: transaction costs always reduce returns in tests/unit/test_portfolio.py
 
 **⚠️ VERIFY**: All tests above should FAIL (Red phase)
 
 ### Implementation for User Story 3
 
-- [ ] T047 [US3] Implement transaction cost calculation in BacktestEngine._calculate_trade_cost() in src/backtesting/engine.py
-- [ ] T048 [US3] Apply transaction costs during rebalancing in BacktestEngine._rebalance_portfolio() in src/backtesting/engine.py
-- [ ] T049 [US3] Update Trade dataclass to include transaction_cost field populated during execution in src/models/trade.py
+- [X] T047 [US3] Implement transaction cost calculation in BacktestEngine._calculate_trade_cost() in src/backtesting/engine.py
+- [X] T048 [US3] Apply transaction costs during rebalancing in BacktestEngine._rebalance_portfolio() in src/backtesting/engine.py
+- [X] T049 [US3] Update Trade dataclass to include transaction_cost field populated during execution in src/models/trade.py
 
 **⚠️ VERIFY**: All US3 tests should now PASS (Green phase)
 

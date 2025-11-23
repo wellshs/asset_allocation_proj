@@ -337,6 +337,10 @@ class BacktestEngine:
                 # Skip tiny trades
                 continue
 
+            # Calculate transaction cost
+            trade_value = abs(quantity_change * current_state.current_prices[symbol])
+            transaction_cost = self._calculate_trade_cost(trade_value, config.transaction_costs)
+
             # Create trade record
             trade = Trade(
                 timestamp=current_state.timestamp,
@@ -344,7 +348,7 @@ class BacktestEngine:
                 quantity=quantity_change,
                 price=current_state.current_prices[symbol],
                 currency=config.base_currency,
-                transaction_cost=Decimal("0")  # Will be calculated in Phase 5
+                transaction_cost=transaction_cost
             )
             trades.append(trade)
 
@@ -360,3 +364,27 @@ class BacktestEngine:
         )
 
         return new_state, trades
+
+    def _calculate_trade_cost(
+        self,
+        trade_value: Decimal,
+        transaction_costs: 'TransactionCosts'
+    ) -> Decimal:
+        """Calculate transaction cost for a trade.
+
+        Formula: fixed_per_trade + (percentage × trade_value)
+
+        Args:
+            trade_value: Absolute value of trade
+            transaction_costs: Transaction cost parameters
+
+        Returns:
+            Total transaction cost
+        """
+        fixed_cost = transaction_costs.fixed_per_trade
+        percentage_cost = transaction_costs.percentage * trade_value
+
+        total_cost = fixed_cost + percentage_cost
+
+        # Round to 2 decimal places
+        return total_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
