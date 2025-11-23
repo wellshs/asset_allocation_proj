@@ -168,19 +168,19 @@
 
 ### Tests for User Story 4 (Write FIRST, ensure they FAIL)
 
-- [ ] T050 [P] [US4] Unit test for forward-fill logic (max 5 days) in tests/unit/test_data_providers.py
-- [ ] T051 [P] [US4] Unit test for market holiday handling (rebalance on next business day) in tests/unit/test_rebalancer.py
-- [ ] T052 [P] [US4] Integration test with intentionally missing data (5% gaps) in tests/integration/test_data_providers.py
-- [ ] T053 [P] [US4] Integration test for backtest period including weekends and holidays in tests/integration/test_backtest_engine.py
+- [X] T050 [P] [US4] Unit test for forward-fill logic (max 5 days) in tests/unit/test_data_providers.py
+- [X] T051 [P] [US4] Unit test for market holiday handling (rebalance on next business day) in tests/unit/test_rebalancer.py
+- [X] T052 [P] [US4] Integration test with intentionally missing data (5% gaps) in tests/integration/test_data_providers.py
+- [X] T053 [P] [US4] Integration test for backtest period including weekends and holidays in tests/integration/test_backtest_engine.py
 
 **⚠️ VERIFY**: All tests above should FAIL (Red phase)
 
 ### Implementation for User Story 4
 
-- [ ] T054 [US4] Implement forward-fill logic in BacktestEngine._get_prices_for_date() with 5-day limit in src/backtesting/engine.py
-- [ ] T055 [US4] Implement business day handling using pandas BDay in src/backtesting/rebalancer.py
-- [ ] T056 [US4] Add logging for missing data warnings in src/backtesting/engine.py
-- [ ] T057 [US4] Raise DataError if forward-fill exceeds 5 days in src/backtesting/engine.py
+- [X] T054 [US4] Implement forward-fill logic in BacktestEngine._get_prices_for_date() with 5-day limit in src/backtesting/engine.py
+- [X] T055 [US4] Implement business day handling using pandas BDay in src/backtesting/rebalancer.py
+- [X] T056 [US4] Add logging for missing data warnings in src/backtesting/engine.py
+- [X] T057 [US4] Raise DataError if forward-fill exceeds 5 days in src/backtesting/engine.py
 
 **⚠️ VERIFY**: All US4 tests should now PASS (Green phase)
 

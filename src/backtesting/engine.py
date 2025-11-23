@@ -204,44 +204,64 @@ class BacktestEngine:
         self,
         price_data: pd.DataFrame,
         target_date: date,
-        strategy: AllocationStrategy
+        strategy: AllocationStrategy,
+        max_lookback_days: int = 5
     ) -> dict[str, Decimal]:
-        """Get prices for all assets on a specific date.
+        """Get prices for all assets on a specific date with forward-fill.
+
+        If data is missing for target_date, looks back up to max_lookback_days
+        to find the most recent available price.
 
         Args:
             price_data: Historical price DataFrame
             target_date: Date to get prices for
             strategy: Strategy (to know which symbols needed)
+            max_lookback_days: Maximum days to look back for missing data
 
         Returns:
             Dictionary mapping symbol to price
 
         Raises:
-            DataError: If price data missing for required symbols
+            DataError: If price data missing for required symbols after forward-fill
         """
-        # Convert target_date to pandas Timestamp for comparison
-        target_ts = pd.Timestamp(target_date)
-
-        # Filter to target date
-        day_data = price_data[price_data['date'] == target_ts]
-
-        if day_data.empty:
-            raise DataError(f"No price data for date {target_date}")
-
-        # Extract prices for each symbol
         prices = {}
+
         for symbol in strategy.asset_weights.keys():
-            symbol_data = day_data[day_data['symbol'] == symbol]
+            price_found = False
 
-            if symbol_data.empty:
-                raise DataError(f"No price data for {symbol} on {target_date}")
+            # Try target date first, then look back up to max_lookback_days
+            for days_back in range(max_lookback_days + 1):
+                check_date = target_date - pd.Timedelta(days=days_back)
+                check_ts = pd.Timestamp(check_date)
 
-            price = Decimal(str(symbol_data.iloc[0]['price']))
+                symbol_data = price_data[
+                    (price_data['date'] == check_ts) &
+                    (price_data['symbol'] == symbol)
+                ]
 
-            # Round to 4 decimal places
-            price = price.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+                if not symbol_data.empty:
+                    price = Decimal(str(symbol_data.iloc[0]['price']))
 
-            prices[symbol] = price
+                    # Round to 4 decimal places
+                    price = price.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+                    prices[symbol] = price
+                    price_found = True
+
+                    if days_back > 0:
+                        import logging
+                        logging.warning(
+                            f"Forward-filled {symbol} price: used {check_date} "
+                            f"data for {target_date} ({days_back} days back)"
+                        )
+
+                    break
+
+            if not price_found:
+                raise DataError(
+                    f"No price data for {symbol} on {target_date} "
+                    f"(looked back {max_lookback_days} days)"
+                )
 
         return prices
 
