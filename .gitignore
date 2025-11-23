@@ -56,3 +56,6 @@ htmlcov/
 
 # Large data files
 tests/fixtures/*.csv
+
+# Claude Code local settings
+.claude/settings.local.json
