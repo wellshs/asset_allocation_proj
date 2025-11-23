@@ -24,13 +24,13 @@
 
 **Purpose**: Project initialization with uv and basic structure
 
-- [ ] T001 Initialize Python project with uv (uv init)
-- [ ] T002 Configure pyproject.toml with dependencies (pandas>=2.0.0, numpy>=1.24.0, pytest>=7.0.0, hypothesis>=6.0.0, requests>=2.31.0)
-- [ ] T003 [P] Create project structure: src/backtesting/, src/data/, src/models/, src/cli/
-- [ ] T004 [P] Create test structure: tests/unit/, tests/integration/, tests/contract/, tests/fixtures/
-- [ ] T005 [P] Configure pytest.ini with test discovery and coverage settings
-- [ ] T006 [P] Add .gitignore for Python (.venv/, __pycache__/, *.pyc, .pytest_cache/)
-- [ ] T007 Create README.md with project overview and setup instructions
+- [X] T001 Initialize Python project with uv (uv init)
+- [X] T002 Configure pyproject.toml with dependencies (pandas>=2.0.0, numpy>=1.24.0, pytest>=7.0.0, hypothesis>=6.0.0, requests>=2.31.0)
+- [X] T003 [P] Create project structure: src/backtesting/, src/data/, src/models/, src/cli/
+- [X] T004 [P] Create test structure: tests/unit/, tests/integration/, tests/contract/, tests/fixtures/
+- [X] T005 [P] Configure pytest.ini with test discovery and coverage settings
+- [X] T006 [P] Add .gitignore for Python (.venv/, __pycache__/, *.pyc, .pytest_cache/)
+- [X] T007 Create README.md with project overview and setup instructions
 
 **Checkpoint**: Project structure ready, uv environment configured
 
