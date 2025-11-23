@@ -1,37 +1,68 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Backtesting Logic
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-backtesting-logic` | **Date**: 2025-11-23 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-backtesting-logic/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Implement backtesting logic to simulate asset allocation strategies against historical market data. The system will accept time periods, historical price data, and allocation strategies, then execute the strategy rules to calculate portfolio performance metrics (returns, drawdowns, Sharpe ratio). Core functionality includes periodic rebalancing, transaction cost modeling, and handling of real-world data issues (missing prices, delisted assets, market holidays).
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11+
+**Primary Dependencies**: pandas (≥2.0), numpy (≥1.24), pytest (≥7.0), hypothesis (≥6.0), requests (≥2.31)
+**Storage**: CSV files for historical price data (initial implementation), exchangerate.host API for exchange rates
+**Testing**: pytest with three-tier structure (unit, integration, contract tests), hypothesis for property-based testing
+**Target Platform**: CLI application / Python library, cross-platform (Linux/macOS/Windows)
+**Project Type**: single (backtesting engine library/service)
+**Performance Goals**: Backtest 10 years of data for 5 assets within 30 seconds (SC-001)
+**Constraints**: Calculation accuracy within 0.01% of manual calculations (SC-002), 95% success rate for valid inputs (SC-004)
+**Scale/Scope**: Support portfolios with 5-10 assets, 10 years of daily historical data, handle datasets with up to 10% missing data (SC-007)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### I. Test-First Development (NON-NEGOTIABLE)
+- ✅ **PASS**: Feature spec includes comprehensive user stories with acceptance scenarios
+- ✅ **PASS**: Plan includes test strategy requirement before implementation
+- ✅ **PASS**: Three-tier test strategy defined (unit, integration, contract) in research.md
+- ✅ **PASS**: Test fixtures and reference scenarios documented (SPY 2010-2020, 60/40 portfolio, 2008 crisis)
+- ✅ **PASS**: Property-based testing with hypothesis for comprehensive coverage
+- ⏳ **PENDING**: Tests will be written and approved before implementation begins (Phase 2)
+
+### II. Financial Data Accuracy (NON-NEGOTIABLE)
+- ✅ **PASS**: Spec defines accuracy requirements (0.01% tolerance in SC-002)
+- ✅ **PASS**: Spec requires reproducible results and documented formulas
+- ✅ **PASS**: Edge cases explicitly documented (missing data, delistings, holidays)
+- ✅ **PASS**: Calculation formulas documented with authoritative references (Sharpe 1994, standard financial definitions)
+- ✅ **PASS**: Explicit rounding behavior defined in data-model.md (4 decimal places for percentages, 2 for currency)
+- ✅ **PASS**: Decimal precision specified to avoid floating-point errors
+- ✅ **PASS**: Audit trail via Trade records and PortfolioState history
+
+### III. Simplicity (Start Simple, Justify Complexity)
+- ✅ **PASS**: Feature implements minimal viable backtesting (no optimization, ML, or advanced features)
+- ✅ **PASS**: Out-of-scope section clearly excludes speculative features
+- ✅ **PASS**: Technology choices justified in research.md (Python ecosystem, pandas/numpy, CSV files)
+- ✅ **PASS**: Minimal dependency set (5 libraries, all justified)
+- ✅ **PASS**: Started with CSV files (simplest), not database
+- ✅ **PASS**: No unnecessary abstractions - direct implementations
+
+**GATE STATUS POST-DESIGN**: ✅ PASS - All constitution principles satisfied. Ready for Phase 2 (Task Generation).
+
+### Complexity Tracking Post-Design
+
+No violations detected. All complexity justified:
+
+| Component | Justification |
+|-----------|---------------|
+| pandas/numpy | Required for time-series handling and performance (SC-001: 30-second requirement) |
+| pytest/hypothesis | Required for Test-First Development principle compliance |
+| requests library | Required for FR-018 (automatic exchange rate fetching) |
+| exchangerate.host API | External dependency justified - manual entry too error-prone for multi-currency |
+| CSV format | Simplest possible storage, no database overhead |
 
 ## Project Structure
 
@@ -48,51 +79,36 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
+├── backtesting/
+│   ├── engine.py           # Core backtest execution logic
+│   ├── portfolio.py        # Portfolio state management
+│   ├── rebalancer.py       # Rebalancing logic
+│   ├── metrics.py          # Performance calculation (returns, Sharpe, drawdown)
+│   └── data_loader.py      # Historical price data loading/validation
 ├── models/
-├── services/
-├── cli/
-└── lib/
+│   ├── backtest_config.py  # Backtest configuration
+│   ├── trade.py            # Trade representation
+│   └── allocation.py       # Allocation strategy definition
+└── utils/
+    ├── date_utils.py       # Market calendar, business day logic
+    └── currency.py         # Multi-currency support
 
 tests/
-├── contract/
+├── unit/
+│   ├── test_portfolio.py
+│   ├── test_rebalancer.py
+│   ├── test_metrics.py
+│   └── test_data_loader.py
 ├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   └── test_backtest_engine.py
+└── contract/
+    └── test_acceptance_scenarios.py  # User story acceptance tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single project structure selected. This is a pure calculation/simulation engine without UI requirements. The backtesting module contains core logic, models define data structures, and utils provide supporting functionality. Tests follow the three-tier structure (unit, integration, contract) per TDD requirements.
 
 ## Complexity Tracking
 
