@@ -14,6 +14,7 @@ class AllocationStrategy:
         asset_weights: Dictionary mapping asset symbols to target weights (must sum to 1.0)
         rebalance_threshold: Optional threshold for drift-based rebalancing (future enhancement)
     """
+
     name: str
     asset_weights: dict[str, Decimal]
     rebalance_threshold: Optional[Decimal] = None

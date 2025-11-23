@@ -21,6 +21,7 @@ class PerformanceMetrics:
         start_value: Initial portfolio value
         end_value: Final portfolio value
     """
+
     total_return: Decimal
     annualized_return: Decimal
     volatility: Decimal

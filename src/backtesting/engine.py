@@ -1,19 +1,22 @@
 """Core backtest execution engine."""
 
+import logging
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 from dataclasses import dataclass
 import pandas as pd
 
-from ..models.backtest_config import BacktestConfiguration
+from ..models.backtest_config import BacktestConfiguration, TransactionCosts
 from ..models.strategy import AllocationStrategy
 from ..models.portfolio_state import PortfolioState
 from ..models.trade import Trade
 from ..models.performance import PerformanceMetrics
-from ..models import RebalancingFrequency
 from .exceptions import DataError
 from . import metrics
 from .rebalancer import generate_rebalancing_dates, calculate_rebalancing_trades
+
+# Minimum trade quantity threshold to skip negligible trades
+MIN_TRADE_QUANTITY = Decimal("0.000001")
 
 
 @dataclass
@@ -25,6 +28,7 @@ class BacktestResult:
         trades: List of all trades executed
         portfolio_history: List of portfolio states over time
     """
+
     metrics: PerformanceMetrics
     trades: list[Trade]
     portfolio_history: list[PortfolioState]
@@ -38,7 +42,7 @@ class BacktestEngine:
         config: BacktestConfiguration,
         strategy: AllocationStrategy,
         price_data: pd.DataFrame,
-        exchange_rates: pd.DataFrame = None
+        exchange_rates: pd.DataFrame = None,
     ) -> BacktestResult:
         """Run a complete backtest simulation.
 
@@ -59,13 +63,12 @@ class BacktestEngine:
         portfolio_history = []
 
         # Get list of trading dates
-        trading_dates = pd.to_datetime(price_data['date']).unique()
+        trading_dates = pd.to_datetime(price_data["date"]).unique()
         trading_dates = sorted([d.date() for d in trading_dates])
 
         # Filter to backtest period
         trading_dates = [
-            d for d in trading_dates
-            if config.start_date <= d <= config.end_date
+            d for d in trading_dates if config.start_date <= d <= config.end_date
         ]
 
         if not trading_dates:
@@ -76,10 +79,7 @@ class BacktestEngine:
         prices_first = self._get_prices_for_date(price_data, first_date, strategy)
 
         portfolio = self._initialize_portfolio(
-            config.initial_capital,
-            strategy,
-            prices_first,
-            first_date
+            config.initial_capital, strategy, prices_first, first_date
         )
 
         # Record initial purchase trades
@@ -91,7 +91,7 @@ class BacktestEngine:
                     quantity=quantity,
                     price=prices_first[symbol],
                     currency=config.base_currency,
-                    transaction_cost=Decimal("0")  # Initial purchase, no cost
+                    transaction_cost=Decimal("0"),  # Initial purchase, no cost
                 )
                 trades.append(trade)
 
@@ -100,9 +100,7 @@ class BacktestEngine:
 
         # Generate rebalancing dates
         rebalancing_dates = generate_rebalancing_dates(
-            config.start_date,
-            config.end_date,
-            config.rebalancing_frequency
+            config.start_date, config.end_date, config.rebalancing_frequency
         )
         # Remove first date (already handled in initialization)
         if rebalancing_dates and rebalancing_dates[0] == first_date:
@@ -112,9 +110,7 @@ class BacktestEngine:
         for current_date in trading_dates[1:]:
             # Get current prices
             current_prices = self._get_prices_for_date(
-                price_data,
-                current_date,
-                strategy
+                price_data, current_date, strategy
             )
 
             # Update portfolio state with current prices
@@ -122,15 +118,13 @@ class BacktestEngine:
                 timestamp=current_date,
                 cash_balance=portfolio.cash_balance,
                 asset_holdings=portfolio.asset_holdings.copy(),
-                current_prices=current_prices
+                current_prices=current_prices,
             )
 
             # Check if rebalancing is needed
             if current_date in rebalancing_dates:
                 portfolio, rebalance_trades = self._rebalance_portfolio(
-                    portfolio,
-                    strategy,
-                    config
+                    portfolio, strategy, config
                 )
                 trades.extend(rebalance_trades)
 
@@ -139,15 +133,13 @@ class BacktestEngine:
 
         # Calculate performance metrics
         performance_metrics = self._calculate_performance_metrics(
-            portfolio_history,
-            trades,
-            config
+            portfolio_history, trades, config
         )
 
         return BacktestResult(
             metrics=performance_metrics,
             trades=trades,
-            portfolio_history=portfolio_history
+            portfolio_history=portfolio_history,
         )
 
     def _initialize_portfolio(
@@ -155,7 +147,7 @@ class BacktestEngine:
         initial_capital: Decimal,
         strategy: AllocationStrategy,
         initial_prices: dict[str, Decimal],
-        timestamp: date
+        timestamp: date,
     ) -> PortfolioState:
         """Initialize portfolio by purchasing assets according to strategy weights.
 
@@ -197,7 +189,7 @@ class BacktestEngine:
             timestamp=timestamp,
             cash_balance=cash_balance,
             asset_holdings=asset_holdings,
-            current_prices=initial_prices
+            current_prices=initial_prices,
         )
 
     def _get_prices_for_date(
@@ -205,7 +197,7 @@ class BacktestEngine:
         price_data: pd.DataFrame,
         target_date: date,
         strategy: AllocationStrategy,
-        max_lookback_days: int = 5
+        max_lookback_days: int = 5,
     ) -> dict[str, Decimal]:
         """Get prices for all assets on a specific date with forward-fill.
 
@@ -235,12 +227,11 @@ class BacktestEngine:
                 check_ts = pd.Timestamp(check_date)
 
                 symbol_data = price_data[
-                    (price_data['date'] == check_ts) &
-                    (price_data['symbol'] == symbol)
+                    (price_data["date"] == check_ts) & (price_data["symbol"] == symbol)
                 ]
 
                 if not symbol_data.empty:
-                    price = Decimal(str(symbol_data.iloc[0]['price']))
+                    price = Decimal(str(symbol_data.iloc[0]["price"]))
 
                     # Round to 4 decimal places
                     price = price.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
@@ -249,7 +240,6 @@ class BacktestEngine:
                     price_found = True
 
                     if days_back > 0:
-                        import logging
                         logging.warning(
                             f"Forward-filled {symbol} price: used {check_date} "
                             f"data for {target_date} ({days_back} days back)"
@@ -269,7 +259,7 @@ class BacktestEngine:
         self,
         portfolio_history: list[PortfolioState],
         trades: list[Trade],
-        config: BacktestConfiguration
+        config: BacktestConfiguration,
     ) -> PerformanceMetrics:
         """Calculate performance metrics from portfolio history.
 
@@ -282,9 +272,9 @@ class BacktestEngine:
             PerformanceMetrics
         """
         # Extract portfolio values
-        portfolio_values = pd.Series([
-            float(state.total_value) for state in portfolio_history
-        ])
+        portfolio_values = pd.Series(
+            [float(state.total_value) for state in portfolio_history]
+        )
 
         # Calculate daily returns
         daily_returns = portfolio_values.pct_change().dropna()
@@ -298,8 +288,7 @@ class BacktestEngine:
 
         num_trading_days = len(portfolio_history) - 1
         annualized_return = metrics.calculate_annualized_return(
-            total_return,
-            num_trading_days
+            total_return, num_trading_days
         )
 
         volatility = metrics.calculate_volatility(daily_returns)
@@ -307,14 +296,12 @@ class BacktestEngine:
         max_drawdown = metrics.calculate_max_drawdown(portfolio_values)
 
         # Calculate Sharpe ratio (handle zero volatility)
-        try:
-            sharpe_ratio = metrics.calculate_sharpe_ratio(
-                annualized_return,
-                volatility,
-                config.risk_free_rate
-            )
-        except ZeroDivisionError:
+        if volatility == 0:
             sharpe_ratio = Decimal("0")
+        else:
+            sharpe_ratio = metrics.calculate_sharpe_ratio(
+                annualized_return, volatility, config.risk_free_rate
+            )
 
         return PerformanceMetrics(
             total_return=total_return,
@@ -326,14 +313,14 @@ class BacktestEngine:
             start_date=config.start_date,
             end_date=config.end_date,
             start_value=start_value,
-            end_value=end_value
+            end_value=end_value,
         )
 
     def _rebalance_portfolio(
         self,
         current_state: PortfolioState,
         strategy: AllocationStrategy,
-        config: BacktestConfiguration
+        config: BacktestConfiguration,
     ) -> tuple[PortfolioState, list[Trade]]:
         """Rebalance portfolio to target weights.
 
@@ -353,13 +340,15 @@ class BacktestEngine:
 
         # Execute trades
         for symbol, quantity_change in trade_quantities.items():
-            if abs(quantity_change) < Decimal("0.000001"):
+            if abs(quantity_change) < MIN_TRADE_QUANTITY:
                 # Skip tiny trades
                 continue
 
             # Calculate transaction cost
             trade_value = abs(quantity_change * current_state.current_prices[symbol])
-            transaction_cost = self._calculate_trade_cost(trade_value, config.transaction_costs)
+            transaction_cost = self._calculate_trade_cost(
+                trade_value, config.transaction_costs
+            )
 
             # Create trade record
             trade = Trade(
@@ -368,27 +357,30 @@ class BacktestEngine:
                 quantity=quantity_change,
                 price=current_state.current_prices[symbol],
                 currency=config.base_currency,
-                transaction_cost=transaction_cost
+                transaction_cost=transaction_cost,
             )
             trades.append(trade)
 
             # Update holdings
-            new_holdings[symbol] = new_holdings.get(symbol, Decimal("0")) + quantity_change
+            new_holdings[symbol] = (
+                new_holdings.get(symbol, Decimal("0")) + quantity_change
+            )
+
+        # Calculate total transaction costs
+        total_transaction_costs = sum(trade.transaction_cost for trade in trades)
 
         # Create new portfolio state
         new_state = PortfolioState(
             timestamp=current_state.timestamp,
-            cash_balance=current_state.cash_balance,
+            cash_balance=current_state.cash_balance - total_transaction_costs,
             asset_holdings=new_holdings,
-            current_prices=current_state.current_prices
+            current_prices=current_state.current_prices,
         )
 
         return new_state, trades
 
     def _calculate_trade_cost(
-        self,
-        trade_value: Decimal,
-        transaction_costs: 'TransactionCosts'
+        self, trade_value: Decimal, transaction_costs: TransactionCosts
     ) -> Decimal:
         """Calculate transaction cost for a trade.
 

@@ -3,7 +3,6 @@
 import pytest
 import numpy as np
 import pandas as pd
-from datetime import date
 from decimal import Decimal
 
 from src.backtesting import metrics
@@ -83,9 +82,7 @@ class TestMetricCalculations:
         risk_free_rate = Decimal("0.02")  # 2%
 
         result = metrics.calculate_sharpe_ratio(
-            annualized_return,
-            volatility,
-            risk_free_rate
+            annualized_return, volatility, risk_free_rate
         )
 
         # Expected: (0.12 - 0.02) / 0.15 = 0.6667
@@ -101,7 +98,5 @@ class TestMetricCalculations:
         # Should handle division by zero gracefully
         with pytest.raises(ZeroDivisionError):
             metrics.calculate_sharpe_ratio(
-                annualized_return,
-                volatility,
-                risk_free_rate
+                annualized_return, volatility, risk_free_rate
             )

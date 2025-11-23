@@ -3,9 +3,8 @@
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
-from .import RebalancingFrequency
+from . import RebalancingFrequency
 
 
 @dataclass
@@ -16,6 +15,7 @@ class TransactionCosts:
         fixed_per_trade: Fixed cost per trade (e.g., $0)
         percentage: Percentage of trade value (e.g., 0.001 = 0.1%)
     """
+
     fixed_per_trade: Decimal
     percentage: Decimal
 
@@ -39,6 +39,7 @@ class BacktestConfiguration:
         transaction_costs: Transaction cost parameters
         risk_free_rate: Risk-free rate for Sharpe ratio calculation (default: 0.02 = 2%)
     """
+
     start_date: date
     end_date: date
     initial_capital: Decimal

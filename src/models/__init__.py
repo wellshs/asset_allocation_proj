@@ -5,6 +5,7 @@ from enum import Enum
 
 class RebalancingFrequency(Enum):
     """Frequency at which portfolio is rebalanced."""
+
     NEVER = "never"
     DAILY = "daily"
     WEEKLY = "weekly"

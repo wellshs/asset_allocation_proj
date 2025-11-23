@@ -10,9 +10,7 @@ from ..models.strategy import AllocationStrategy
 
 
 def generate_rebalancing_dates(
-    start_date: date,
-    end_date: date,
-    frequency: RebalancingFrequency
+    start_date: date, end_date: date, frequency: RebalancingFrequency
 ) -> list[date]:
     """Generate list of rebalancing dates based on frequency.
 
@@ -36,7 +34,7 @@ def generate_rebalancing_dates(
 
     elif frequency == RebalancingFrequency.WEEKLY:
         # Every Monday
-        date_range = pd.bdate_range(start=start_date, end=end_date, freq='W-MON')
+        date_range = pd.bdate_range(start=start_date, end=end_date, freq="W-MON")
         dates = [d.date() for d in date_range]
         # Include start date if not already included
         if start_date not in dates:
@@ -44,7 +42,7 @@ def generate_rebalancing_dates(
 
     elif frequency == RebalancingFrequency.MONTHLY:
         # First business day of each month
-        date_range = pd.bdate_range(start=start_date, end=end_date, freq='BMS')
+        date_range = pd.bdate_range(start=start_date, end=end_date, freq="BMS")
         dates = [d.date() for d in date_range]
         # Include start date if not already included
         if start_date not in dates:
@@ -52,7 +50,7 @@ def generate_rebalancing_dates(
 
     elif frequency == RebalancingFrequency.QUARTERLY:
         # First business day of each quarter
-        date_range = pd.bdate_range(start=start_date, end=end_date, freq='BQS')
+        date_range = pd.bdate_range(start=start_date, end=end_date, freq="BQS")
         dates = [d.date() for d in date_range]
         # Include start date if not already included
         if start_date not in dates:
@@ -60,7 +58,7 @@ def generate_rebalancing_dates(
 
     elif frequency == RebalancingFrequency.ANNUALLY:
         # First business day of each year
-        date_range = pd.bdate_range(start=start_date, end=end_date, freq='BAS-JAN')
+        date_range = pd.bdate_range(start=start_date, end=end_date, freq="BAS-JAN")
         dates = [d.date() for d in date_range]
         # Include start date if not already included
         if start_date not in dates:
@@ -70,8 +68,7 @@ def generate_rebalancing_dates(
 
 
 def calculate_rebalancing_trades(
-    current_state: PortfolioState,
-    target_strategy: AllocationStrategy
+    current_state: PortfolioState, target_strategy: AllocationStrategy
 ) -> dict[str, Decimal]:
     """Calculate trades needed to rebalance portfolio to target weights.
 
@@ -106,8 +103,7 @@ def calculate_rebalancing_trades(
 
         # Round to 6 decimal places
         quantity_change = quantity_change.quantize(
-            Decimal("0.000001"),
-            rounding=ROUND_HALF_UP
+            Decimal("0.000001"), rounding=ROUND_HALF_UP
         )
 
         trades[symbol] = quantity_change

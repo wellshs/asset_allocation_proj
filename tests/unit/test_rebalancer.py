@@ -1,11 +1,13 @@
 """Unit tests for rebalancing logic."""
 
-import pytest
 from datetime import date
 from decimal import Decimal
 
 from src.models import RebalancingFrequency
-from src.backtesting.rebalancer import generate_rebalancing_dates, calculate_rebalancing_trades
+from src.backtesting.rebalancer import (
+    generate_rebalancing_dates,
+    calculate_rebalancing_trades,
+)
 from src.models.portfolio_state import PortfolioState
 from src.models.strategy import AllocationStrategy
 
@@ -19,9 +21,7 @@ class TestRebalancingDates:
         end_date = date(2020, 12, 31)
 
         dates = generate_rebalancing_dates(
-            start_date,
-            end_date,
-            RebalancingFrequency.QUARTERLY
+            start_date, end_date, RebalancingFrequency.QUARTERLY
         )
 
         # Should have Q1, Q2, Q3, Q4
@@ -35,9 +35,7 @@ class TestRebalancingDates:
         end_date = date(2020, 6, 30)
 
         dates = generate_rebalancing_dates(
-            start_date,
-            end_date,
-            RebalancingFrequency.MONTHLY
+            start_date, end_date, RebalancingFrequency.MONTHLY
         )
 
         # Should have 6 months
@@ -49,9 +47,7 @@ class TestRebalancingDates:
         end_date = date(2020, 12, 31)
 
         dates = generate_rebalancing_dates(
-            start_date,
-            end_date,
-            RebalancingFrequency.ANNUALLY
+            start_date, end_date, RebalancingFrequency.ANNUALLY
         )
 
         # Should have 3 years: 2018, 2019, 2020
@@ -63,9 +59,7 @@ class TestRebalancingDates:
         end_date = date(2020, 12, 31)
 
         dates = generate_rebalancing_dates(
-            start_date,
-            end_date,
-            RebalancingFrequency.NEVER
+            start_date, end_date, RebalancingFrequency.NEVER
         )
 
         # Should return empty list (no rebalancing)
@@ -82,14 +76,13 @@ class TestRebalancingTrades:
             timestamp=date(2020, 6, 1),
             cash_balance=Decimal("0"),
             asset_holdings={"SPY": Decimal("7"), "AGG": Decimal("3")},
-            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")}
+            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")},
         )
         # Total value: 7*300 + 3*100 = 2100 + 300 = 2400
 
         # Target: 60% SPY, 40% AGG
         target_strategy = AllocationStrategy(
-            name="60/40",
-            asset_weights={"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
+            name="60/40", asset_weights={"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
         )
 
         trades = calculate_rebalancing_trades(current_state, target_strategy)
@@ -114,14 +107,13 @@ class TestRebalancingTrades:
             timestamp=date(2020, 6, 1),
             cash_balance=Decimal("0"),
             asset_holdings={"SPY": Decimal("6"), "AGG": Decimal("4")},
-            current_prices={"SPY": Decimal("300"), "AGG": Decimal("300")}
+            current_prices={"SPY": Decimal("300"), "AGG": Decimal("300")},
         )
         # Total: 6*300 + 4*300 = 3000
         # Current weights: SPY=60%, AGG=40%
 
         target_strategy = AllocationStrategy(
-            name="60/40",
-            asset_weights={"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
+            name="60/40", asset_weights={"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
         )
 
         trades = calculate_rebalancing_trades(current_state, target_strategy)
@@ -136,12 +128,11 @@ class TestRebalancingTrades:
             timestamp=date(2020, 6, 1),
             cash_balance=Decimal("1000"),
             asset_holdings={"SPY": Decimal("5"), "AGG": Decimal("10")},
-            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")}
+            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")},
         )
 
         target_strategy = AllocationStrategy(
-            name="Test",
-            asset_weights={"SPY": Decimal("0.7"), "AGG": Decimal("0.3")}
+            name="Test", asset_weights={"SPY": Decimal("0.7"), "AGG": Decimal("0.3")}
         )
 
         trades = calculate_rebalancing_trades(current_state, target_strategy)
@@ -149,14 +140,16 @@ class TestRebalancingTrades:
         # Apply trades to portfolio
         new_holdings = {}
         for symbol in current_state.asset_holdings.keys():
-            new_holdings[symbol] = current_state.asset_holdings[symbol] + trades.get(symbol, Decimal("0"))
+            new_holdings[symbol] = current_state.asset_holdings[symbol] + trades.get(
+                symbol, Decimal("0")
+            )
 
         # Calculate new state
         new_state = PortfolioState(
             timestamp=current_state.timestamp,
             cash_balance=Decimal("0"),  # Assume all cash used
             asset_holdings=new_holdings,
-            current_prices=current_state.current_prices
+            current_prices=current_state.current_prices,
         )
 
         # Check weights sum to ~1.0

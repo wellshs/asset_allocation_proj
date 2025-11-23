@@ -1,6 +1,5 @@
 """Unit tests for portfolio state management."""
 
-import pytest
 from datetime import date
 from decimal import Decimal
 
@@ -16,7 +15,7 @@ class TestPortfolioState:
             timestamp=date(2020, 1, 1),
             cash_balance=Decimal("10000"),
             asset_holdings={"SPY": Decimal("10"), "AGG": Decimal("20")},
-            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")}
+            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")},
         )
 
         # Expected: 10000 + (10 * 300) + (20 * 100) = 10000 + 3000 + 2000 = 15000
@@ -28,7 +27,7 @@ class TestPortfolioState:
             timestamp=date(2020, 1, 1),
             cash_balance=Decimal("0"),
             asset_holdings={"SPY": Decimal("10")},
-            current_prices={"SPY": Decimal("300")}
+            current_prices={"SPY": Decimal("300")},
         )
 
         assert state.total_value == Decimal("3000")
@@ -39,7 +38,7 @@ class TestPortfolioState:
             timestamp=date(2020, 1, 1),
             cash_balance=Decimal("0"),
             asset_holdings={"SPY": Decimal("10"), "AGG": Decimal("20")},
-            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")}
+            current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")},
         )
 
         weights = state.get_current_weights()
@@ -54,7 +53,7 @@ class TestPortfolioState:
             timestamp=date(2020, 1, 1),
             cash_balance=Decimal("0"),
             asset_holdings={},
-            current_prices={}
+            current_prices={},
         )
 
         weights = state.get_current_weights()
@@ -66,7 +65,7 @@ class TestPortfolioState:
             timestamp=date(2020, 1, 1),
             cash_balance=Decimal("1000"),
             asset_holdings={"SPY": Decimal("10.567890")},
-            current_prices={"SPY": Decimal("300.1234")}
+            current_prices={"SPY": Decimal("300.1234")},
         )
 
         # Should handle 6 decimal places for quantity

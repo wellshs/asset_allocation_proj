@@ -21,10 +21,7 @@ class CSVDataProvider(HistoricalDataProvider):
         self.data_dir = Path(data_dir)
 
     def load_prices(
-        self,
-        symbols: list[str],
-        start_date: date,
-        end_date: date
+        self, symbols: list[str], start_date: date, end_date: date
     ) -> pd.DataFrame:
         """Load historical price data for symbols from CSV files.
 
@@ -56,19 +53,21 @@ class CSVDataProvider(HistoricalDataProvider):
                 matching_files = [csv_path] if csv_path.exists() else []
 
             if not matching_files:
-                raise DataError(f"No CSV file found for symbol {symbol} in {self.data_dir}")
+                raise DataError(
+                    f"No CSV file found for symbol {symbol} in {self.data_dir}"
+                )
 
             # Load the first matching file
             try:
                 df = pd.read_csv(matching_files[0])
-            except Exception as e:
-                raise DataError(f"Failed to read CSV for {symbol}: {e}")
+            except (pd.errors.ParserError, FileNotFoundError, PermissionError) as e:
+                raise DataError(f"Failed to read CSV for {symbol}: {e}") from e
 
             # Convert date column to datetime
-            df['date'] = pd.to_datetime(df['date'])
+            df["date"] = pd.to_datetime(df["date"])
 
             # Filter by symbol (in case file contains multiple symbols)
-            df = df[df['symbol'] == symbol].copy()
+            df = df[df["symbol"] == symbol].copy()
 
             all_data.append(df)
 
@@ -80,8 +79,8 @@ class CSVDataProvider(HistoricalDataProvider):
 
         # Filter by date range
         combined_df = combined_df[
-            (combined_df['date'] >= pd.Timestamp(start_date)) &
-            (combined_df['date'] <= pd.Timestamp(end_date))
+            (combined_df["date"] >= pd.Timestamp(start_date))
+            & (combined_df["date"] <= pd.Timestamp(end_date))
         ].copy()
 
         if combined_df.empty:
@@ -91,7 +90,7 @@ class CSVDataProvider(HistoricalDataProvider):
         self.validate_data(combined_df)
 
         # Sort by date and symbol
-        combined_df = combined_df.sort_values(['date', 'symbol']).reset_index(drop=True)
+        combined_df = combined_df.sort_values(["date", "symbol"]).reset_index(drop=True)
 
         return combined_df
 

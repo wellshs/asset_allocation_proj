@@ -3,7 +3,7 @@
 import yfinance as yf
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
+
 
 def download_ticker_data(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     """Download historical data for a ticker from Yahoo Finance.
@@ -22,12 +22,14 @@ def download_ticker_data(symbol: str, start_date: str, end_date: str) -> pd.Data
     hist = ticker.history(start=start_date, end=end_date)
 
     # Use adjusted close price
-    df = pd.DataFrame({
-        'date': hist.index.strftime('%Y-%m-%d'),
-        'symbol': symbol,
-        'price': hist['Close'].round(2),
-        'currency': 'USD'
-    })
+    df = pd.DataFrame(
+        {
+            "date": hist.index.strftime("%Y-%m-%d"),
+            "symbol": symbol,
+            "price": hist["Close"].round(2),
+            "currency": "USD",
+        }
+    )
 
     print(f"✓ Downloaded {len(df)} records for {symbol}")
     return df
@@ -42,7 +44,7 @@ def main():
     # Configuration
     start_date = "2000-01-01"
     end_date = "2025-11-23"
-    fixtures_dir = Path(__file__).parent / "tests" / "fixtures"
+    fixtures_dir = Path(__file__).parent.parent / "tests" / "fixtures"
 
     # Download SPY data
     spy_data = download_ticker_data("SPY", start_date, end_date)

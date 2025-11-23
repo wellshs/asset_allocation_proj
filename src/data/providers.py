@@ -10,10 +10,7 @@ class HistoricalDataProvider(ABC):
 
     @abstractmethod
     def load_prices(
-        self,
-        symbols: list[str],
-        start_date: date,
-        end_date: date
+        self, symbols: list[str], start_date: date, end_date: date
     ) -> pd.DataFrame:
         """Load historical price data for symbols.
 
@@ -41,7 +38,7 @@ class ExchangeRateProvider(ABC):
         base_currency: str,
         target_currencies: list[str],
         start_date: date,
-        end_date: date
+        end_date: date,
     ) -> pd.DataFrame:
         """Fetch historical exchange rates.
 

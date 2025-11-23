@@ -23,7 +23,9 @@ def calculate_total_return(initial_value: Decimal, final_value: Decimal) -> Deci
     return (final_value - initial_value) / initial_value
 
 
-def calculate_annualized_return(total_return: Decimal, num_trading_days: int) -> Decimal:
+def calculate_annualized_return(
+    total_return: Decimal, num_trading_days: int
+) -> Decimal:
     """Calculate annualized return from total return.
 
     Formula: (1 + total_return)^(252/num_days) - 1
@@ -103,9 +105,7 @@ def calculate_max_drawdown(portfolio_values: pd.Series) -> Decimal:
 
 
 def calculate_sharpe_ratio(
-    annualized_return: Decimal,
-    volatility: Decimal,
-    risk_free_rate: Decimal
+    annualized_return: Decimal, volatility: Decimal, risk_free_rate: Decimal
 ) -> Decimal:
     """Calculate Sharpe ratio (risk-adjusted return).
 

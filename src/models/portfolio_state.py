@@ -15,6 +15,7 @@ class PortfolioState:
         asset_holdings: Quantity of each asset held (symbol -> quantity)
         current_prices: Current price of each asset in base currency (symbol -> price)
     """
+
     timestamp: date
     cash_balance: Decimal
     asset_holdings: dict[str, Decimal]

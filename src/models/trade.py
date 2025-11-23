@@ -17,6 +17,7 @@ class Trade:
         currency: Currency of the price (ISO 4217)
         transaction_cost: Total cost incurred for this trade
     """
+
     timestamp: date
     asset_symbol: str
     quantity: Decimal

@@ -39,3 +39,8 @@ omit = ["tests/*"]
 precision = 2
 show_missing = true
 skip_covered = false
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.0",
+]
