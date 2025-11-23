@@ -53,3 +53,6 @@ htmlcov/
 # Temporary files
 *.tmp
 *.bak
+
+# Large data files
+tests/fixtures/*.csv
