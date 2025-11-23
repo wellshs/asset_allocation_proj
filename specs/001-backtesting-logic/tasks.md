@@ -44,27 +44,27 @@
 
 ### Data Models (Required by all stories)
 
-- [ ] T008 [P] Create RebalancingFrequency enum in src/models/__init__.py
-- [ ] T009 [P] Create TransactionCosts dataclass in src/models/backtest_config.py
-- [ ] T010 [P] Create BacktestConfiguration dataclass with validation in src/models/backtest_config.py
-- [ ] T011 [P] Create AllocationStrategy dataclass with weight validation in src/models/strategy.py
-- [ ] T012 [P] Create PortfolioState dataclass with computed total_value in src/models/portfolio_state.py
-- [ ] T013 [P] Create Trade dataclass with validation in src/models/trade.py
-- [ ] T014 [P] Create PerformanceMetrics dataclass in src/models/performance.py
+- [X] T008 [P] Create RebalancingFrequency enum in src/models/__init__.py
+- [X] T009 [P] Create TransactionCosts dataclass in src/models/backtest_config.py
+- [X] T010 [P] Create BacktestConfiguration dataclass with validation in src/models/backtest_config.py
+- [X] T011 [P] Create AllocationStrategy dataclass with weight validation in src/models/strategy.py
+- [X] T012 [P] Create PortfolioState dataclass with computed total_value in src/models/portfolio_state.py
+- [X] T013 [P] Create Trade dataclass with validation in src/models/trade.py
+- [X] T014 [P] Create PerformanceMetrics dataclass in src/models/performance.py
 
 ### Custom Exceptions
 
-- [ ] T015 [P] Create custom exceptions (BacktestError, DataError, CurrencyError, APIError) in src/backtesting/exceptions.py
+- [X] T015 [P] Create custom exceptions (BacktestError, DataError, CurrencyError, APIError) in src/backtesting/exceptions.py
 
 ### Provider Interfaces (Abstract base classes)
 
-- [ ] T016 [P] Create HistoricalDataProvider abstract interface in src/data/providers.py
-- [ ] T017 [P] Create ExchangeRateProvider abstract interface in src/data/providers.py
+- [X] T016 [P] Create HistoricalDataProvider abstract interface in src/data/providers.py
+- [X] T017 [P] Create ExchangeRateProvider abstract interface in src/data/providers.py
 
 ### Data Validation Utilities
 
-- [ ] T018 [P] Implement validate_price_data() function in src/data/validation.py
-- [ ] T019 [P] Implement validate_exchange_rate_data() function in src/data/validation.py
+- [X] T018 [P] Implement validate_price_data() function in src/data/validation.py
+- [X] T019 [P] Implement validate_exchange_rate_data() function in src/data/validation.py
 
 **Checkpoint**: Foundation ready - all data models and interfaces defined, user story implementation can now begin in parallel
 

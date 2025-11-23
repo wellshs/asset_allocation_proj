@@ -24,7 +24,8 @@
       "Bash(uv init:*)",
       "Bash(uv sync:*)",
       "Bash(pyenv versions:*)",
-      "Bash(pyenv install:*)"
+      "Bash(pyenv install:*)",
+      "Bash(zsh -c \"source ~/.zshrc && git commit -m \"\"$(cat <<''EOF''\nComplete Phase 1: Project setup with uv\n\n- Initialize Python project with uv\n- Configure pyproject.toml with dependencies (pandas, numpy, pytest, hypothesis, requests)\n- Create project structure (src/backtesting, src/data, src/models, src/cli)\n- Create test structure (tests/unit, tests/integration, tests/contract, tests/fixtures)\n- Configure pytest with coverage settings\n- Add .gitignore for Python\n- Create README.md with setup instructions\n- Pin Python 3.12.6 and install all dependencies\n\nTasks completed: T001-T007\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"\"\")"
     ],
     "deny": [],
     "ask": []
