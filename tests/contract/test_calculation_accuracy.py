@@ -14,12 +14,8 @@ from src.data.loaders import CSVDataProvider
 
 
 # NOTE: These tests require complete historical data (full 10 years of daily prices)
-# Current test fixtures only have sample data. To run these tests:
-# 1. Download complete SPY and AGG historical data from Yahoo Finance
-# 2. Place in tests/fixtures/ directory
-# 3. Remove @pytest.mark.skip decorators
+# Historical data has been downloaded using download_historical_data.py
 
-@pytest.mark.skip(reason="Requires full historical data - see note above")
 class TestCalculationAccuracy:
     """Test backtesting calculations against known reference scenarios."""
 
