@@ -78,27 +78,27 @@
 
 ### Tests for User Story 1 (Write FIRST, ensure they FAIL)
 
-- [ ] T020 [P] [US1] Create test fixtures: tests/fixtures/spy_2010_2020.csv (SPY historical prices)
-- [ ] T021 [P] [US1] Create test fixtures: tests/fixtures/agg_2010_2020.csv (AGG historical prices)
-- [ ] T022 [P] [US1] Create test fixtures: tests/fixtures/expected_results.json (known metric values)
-- [ ] T023 [P] [US1] Unit test for portfolio initialization in tests/unit/test_portfolio.py
-- [ ] T024 [P] [US1] Unit test for performance metric calculations in tests/unit/test_metrics.py
-- [ ] T025 [P] [US1] Contract test for SPY buy-and-hold 2010-2020 in tests/contract/test_calculation_accuracy.py
-- [ ] T026 [P] [US1] Contract test for 60/40 SPY/AGG portfolio in tests/contract/test_calculation_accuracy.py
-- [ ] T027 [P] [US1] Integration test for end-to-end backtest execution in tests/integration/test_backtest_engine.py
+- [X] T020 [P] [US1] Create test fixtures: tests/fixtures/spy_2010_2020.csv (SPY historical prices)
+- [X] T021 [P] [US1] Create test fixtures: tests/fixtures/agg_2010_2020.csv (AGG historical prices)
+- [X] T022 [P] [US1] Create test fixtures: tests/fixtures/expected_results.json (known metric values)
+- [X] T023 [P] [US1] Unit test for portfolio initialization in tests/unit/test_portfolio.py
+- [X] T024 [P] [US1] Unit test for performance metric calculations in tests/unit/test_metrics.py
+- [X] T025 [P] [US1] Contract test for SPY buy-and-hold 2010-2020 in tests/contract/test_calculation_accuracy.py
+- [X] T026 [P] [US1] Contract test for 60/40 SPY/AGG portfolio in tests/contract/test_calculation_accuracy.py
+- [X] T027 [P] [US1] Integration test for end-to-end backtest execution in tests/integration/test_backtest_engine.py
 
 **⚠️ VERIFY**: All tests above should FAIL (Red phase) before proceeding to implementation
 
 ### Implementation for User Story 1
 
-- [ ] T028 [P] [US1] Implement CSVDataProvider.load_prices() in src/data/loaders.py
-- [ ] T029 [P] [US1] Implement CSVDataProvider.validate_data() in src/data/loaders.py
-- [ ] T030 [US1] Implement BacktestEngine._initialize_portfolio() in src/backtesting/engine.py
-- [ ] T031 [US1] Implement BacktestEngine._get_prices_for_date() with forward-fill in src/backtesting/engine.py
-- [ ] T032 [US1] Implement performance metric calculations in src/backtesting/metrics.py (total_return, annualized_return, volatility, max_drawdown, sharpe_ratio per research.md formulas)
-- [ ] T033 [US1] Implement BacktestEngine.run_backtest() basic flow (no rebalancing, no transaction costs) in src/backtesting/engine.py
-- [ ] T034 [US1] Create BacktestResult dataclass in src/models/__init__.py
-- [ ] T035 [US1] Add PerformanceMetrics.to_dict() formatting method in src/models/performance.py
+- [X] T028 [P] [US1] Implement CSVDataProvider.load_prices() in src/data/loaders.py
+- [X] T029 [P] [US1] Implement CSVDataProvider.validate_data() in src/data/loaders.py
+- [X] T030 [US1] Implement BacktestEngine._initialize_portfolio() in src/backtesting/engine.py
+- [X] T031 [US1] Implement BacktestEngine._get_prices_for_date() with forward-fill in src/backtesting/engine.py
+- [X] T032 [US1] Implement performance metric calculations in src/backtesting/metrics.py (total_return, annualized_return, volatility, max_drawdown, sharpe_ratio per research.md formulas)
+- [X] T033 [US1] Implement BacktestEngine.run_backtest() basic flow (no rebalancing, no transaction costs) in src/backtesting/engine.py
+- [X] T034 [US1] Create BacktestResult dataclass in src/models/__init__.py
+- [X] T035 [US1] Add PerformanceMetrics.to_dict() formatting method in src/models/performance.py
 
 **⚠️ VERIFY**: All US1 tests should now PASS (Green phase)
 

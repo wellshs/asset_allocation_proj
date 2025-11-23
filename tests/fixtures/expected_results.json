@@ -1,0 +1,15 @@
+{
+  "spy_buy_and_hold_2010_2020": {
+    "description": "100% SPY buy-and-hold from 2010-01-04 to 2020-12-31",
+    "total_return": 2.3279,
+    "max_drawdown": -0.3392,
+    "tolerance": 0.02
+  },
+  "60_40_portfolio": {
+    "description": "60% SPY / 40% AGG with quarterly rebalancing",
+    "annualized_return": 0.1087,
+    "sharpe_ratio": 1.18,
+    "tolerance_return": 0.02,
+    "tolerance_sharpe": 0.2
+  }
+}

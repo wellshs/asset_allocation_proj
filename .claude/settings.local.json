@@ -1,31 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git --version:*)",
-      "Bash(uvx:*)",
-      "Bash(git commit:*)",
-      "Bash(git fetch:*)",
-      "Bash(sed:*)",
-      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
-      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
-      "WebSearch",
-      "SlashCommand(/speckit.tasks)",
-      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
-      "Bash(git add:*)",
-      "Bash(cat:*)",
-      "Bash(zsh -c \"source ~/.zshrc && git status\")",
-      "Bash(exec zsh -c \"source ~/.zshrc && git status\")",
-      "Bash(zsh -c \"source ~/.zshrc && type exec_scmb_expand_args\")",
-      "Bash(zsh -c \"source ~/.zshrc && git add .\")",
-      "Bash(zsh -c \"source ~/.zshrc && git commit -m \"\"$(cat <<''EOF''\nAdd backtesting logic specification and project setup\n\n- Add comprehensive backtesting specification including requirements, data model, API contracts, and implementation plan\n- Update project constitution with workflow principles\n- Configure Claude Code settings for project workflow\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"\"\")",
-      "Bash(zsh -c \"source ~/.zshrc && git add .claude/settings.local.json && git commit -m \"\"$(cat <<''EOF''\nUpdate Claude Code settings\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"\"\")",
-      "Bash(osascript:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(uv init:*)",
-      "Bash(uv sync:*)",
-      "Bash(pyenv versions:*)",
-      "Bash(pyenv install:*)",
-      "Bash(zsh -c \"source ~/.zshrc && git commit -m \"\"$(cat <<''EOF''\nComplete Phase 1: Project setup with uv\n\n- Initialize Python project with uv\n- Configure pyproject.toml with dependencies (pandas, numpy, pytest, hypothesis, requests)\n- Create project structure (src/backtesting, src/data, src/models, src/cli)\n- Create test structure (tests/unit, tests/integration, tests/contract, tests/fixtures)\n- Configure pytest with coverage settings\n- Add .gitignore for Python\n- Create README.md with setup instructions\n- Pin Python 3.12.6 and install all dependencies\n\nTasks completed: T001-T007\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"\"\")"
+      "Bash(uv run pytest:*)"
     ],
     "deny": [],
     "ask": []
