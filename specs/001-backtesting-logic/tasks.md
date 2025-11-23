@@ -114,19 +114,19 @@
 
 ### Tests for User Story 2 (Write FIRST, ensure they FAIL)
 
-- [ ] T036 [P] [US2] Unit test for rebalancing trade calculations in tests/unit/test_rebalancer.py
-- [ ] T037 [P] [US2] Unit test for rebalancing date generation (quarterly, monthly, annually) in tests/unit/test_rebalancer.py
-- [ ] T038 [P] [US2] Integration test for quarterly rebalancing backtest in tests/integration/test_backtest_engine.py
-- [ ] T039 [P] [US2] Property-based test: portfolio weights sum to 1.0 after rebalancing in tests/unit/test_rebalancer.py
+- [X] T036 [P] [US2] Unit test for rebalancing trade calculations in tests/unit/test_rebalancer.py
+- [X] T037 [P] [US2] Unit test for rebalancing date generation (quarterly, monthly, annually) in tests/unit/test_rebalancer.py
+- [X] T038 [P] [US2] Integration test for quarterly rebalancing backtest in tests/integration/test_backtest_engine.py
+- [X] T039 [P] [US2] Property-based test: portfolio weights sum to 1.0 after rebalancing in tests/unit/test_rebalancer.py
 
 **⚠️ VERIFY**: All tests above should FAIL (Red phase)
 
 ### Implementation for User Story 2
 
-- [ ] T040 [P] [US2] Implement rebalancing date generation based on RebalancingFrequency in src/backtesting/rebalancer.py
-- [ ] T041 [US2] Implement BacktestEngine._rebalance_portfolio() to calculate required trades in src/backtesting/engine.py
-- [ ] T042 [US2] Integrate rebalancing logic into BacktestEngine.run_backtest() main loop in src/backtesting/engine.py
-- [ ] T043 [US2] Update portfolio state after rebalancing (adjust holdings and cash) in src/backtesting/engine.py
+- [X] T040 [P] [US2] Implement rebalancing date generation based on RebalancingFrequency in src/backtesting/rebalancer.py
+- [X] T041 [US2] Implement BacktestEngine._rebalance_portfolio() to calculate required trades in src/backtesting/engine.py
+- [X] T042 [US2] Integrate rebalancing logic into BacktestEngine.run_backtest() main loop in src/backtesting/engine.py
+- [X] T043 [US2] Update portfolio state after rebalancing (adjust holdings and cash) in src/backtesting/engine.py
 
 **⚠️ VERIFY**: All US2 tests should now PASS (Green phase)
 

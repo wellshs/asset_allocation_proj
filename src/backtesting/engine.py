@@ -10,8 +10,10 @@ from ..models.strategy import AllocationStrategy
 from ..models.portfolio_state import PortfolioState
 from ..models.trade import Trade
 from ..models.performance import PerformanceMetrics
+from ..models import RebalancingFrequency
 from .exceptions import DataError
 from . import metrics
+from .rebalancer import generate_rebalancing_dates, calculate_rebalancing_trades
 
 
 @dataclass
@@ -96,6 +98,16 @@ class BacktestEngine:
         # Record initial portfolio state
         portfolio_history.append(portfolio)
 
+        # Generate rebalancing dates
+        rebalancing_dates = generate_rebalancing_dates(
+            config.start_date,
+            config.end_date,
+            config.rebalancing_frequency
+        )
+        # Remove first date (already handled in initialization)
+        if rebalancing_dates and rebalancing_dates[0] == first_date:
+            rebalancing_dates = rebalancing_dates[1:]
+
         # Simulate remaining days
         for current_date in trading_dates[1:]:
             # Get current prices
@@ -112,6 +124,15 @@ class BacktestEngine:
                 asset_holdings=portfolio.asset_holdings.copy(),
                 current_prices=current_prices
             )
+
+            # Check if rebalancing is needed
+            if current_date in rebalancing_dates:
+                portfolio, rebalance_trades = self._rebalance_portfolio(
+                    portfolio,
+                    strategy,
+                    config
+                )
+                trades.extend(rebalance_trades)
 
             # Record daily state
             portfolio_history.append(portfolio)
@@ -287,3 +308,55 @@ class BacktestEngine:
             start_value=start_value,
             end_value=end_value
         )
+
+    def _rebalance_portfolio(
+        self,
+        current_state: PortfolioState,
+        strategy: AllocationStrategy,
+        config: BacktestConfiguration
+    ) -> tuple[PortfolioState, list[Trade]]:
+        """Rebalance portfolio to target weights.
+
+        Args:
+            current_state: Current portfolio state
+            strategy: Target allocation strategy
+            config: Backtest configuration
+
+        Returns:
+            Tuple of (new portfolio state, list of trades executed)
+        """
+        # Calculate required trades
+        trade_quantities = calculate_rebalancing_trades(current_state, strategy)
+
+        trades = []
+        new_holdings = current_state.asset_holdings.copy()
+
+        # Execute trades
+        for symbol, quantity_change in trade_quantities.items():
+            if abs(quantity_change) < Decimal("0.000001"):
+                # Skip tiny trades
+                continue
+
+            # Create trade record
+            trade = Trade(
+                timestamp=current_state.timestamp,
+                asset_symbol=symbol,
+                quantity=quantity_change,
+                price=current_state.current_prices[symbol],
+                currency=config.base_currency,
+                transaction_cost=Decimal("0")  # Will be calculated in Phase 5
+            )
+            trades.append(trade)
+
+            # Update holdings
+            new_holdings[symbol] = new_holdings.get(symbol, Decimal("0")) + quantity_change
+
+        # Create new portfolio state
+        new_state = PortfolioState(
+            timestamp=current_state.timestamp,
+            cash_balance=current_state.cash_balance,
+            asset_holdings=new_holdings,
+            current_prices=current_state.current_prices
+        )
+
+        return new_state, trades

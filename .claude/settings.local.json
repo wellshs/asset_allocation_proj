@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(uv run pytest:*)"
+      "Bash(uv run pytest:*)",
+      "Bash(zsh -c \"source ~/.zshrc && git commit -m \"\"$(cat <<''EOF''\nComplete Phase 3: User Story 1 - Basic backtesting MVP\n\nTest Fixtures (T020-T022):\n- Create SPY and AGG sample historical price data\n- Create expected results JSON for validation\n- Note: Contract tests require full historical data\n\nUnit Tests (T023-T024):\n- Portfolio state calculations (total value, weights)\n- Performance metric formulas (return, volatility, drawdown, Sharpe)\n- All unit tests passing ✓\n\nIntegration Tests (T027):\n- End-to-end backtest execution\n- Buy-and-hold strategy validation\n- Performance metrics consistency checks\n- All integration tests passing ✓\n\nImplementation (T028-T035):\n- CSVDataProvider for loading historical price data\n- BacktestEngine with portfolio initialization\n- Price data retrieval with proper error handling\n- Performance metrics calculation module\n- BacktestResult dataclass for results\n- PerformanceMetrics.to_dict() for formatted output\n\nTest Results:\n- 16 tests passed\n- 2 tests skipped (require full historical data)\n- 82.58% code coverage\n\nStatus: MVP COMPLETE ✓\nUsers can now load CSV data, run buy-and-hold backtests, and get performance metrics\n\nTasks completed: T020-T035\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"\"\")"
     ],
     "deny": [],
     "ask": []
