@@ -9,7 +9,6 @@ from src.backtesting.rebalancer import (
     calculate_rebalancing_trades,
 )
 from src.models.portfolio_state import PortfolioState
-from src.models.strategy import AllocationStrategy
 
 
 class TestRebalancingDates:
@@ -81,11 +80,9 @@ class TestRebalancingTrades:
         # Total value: 7*300 + 3*100 = 2100 + 300 = 2400
 
         # Target: 60% SPY, 40% AGG
-        target_strategy = AllocationStrategy(
-            name="60/40", asset_weights={"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
-        )
+        target_weights = {"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
 
-        trades = calculate_rebalancing_trades(current_state, target_strategy)
+        trades = calculate_rebalancing_trades(current_state, target_weights)
 
         # Target values: SPY=1440 (60% of 2400), AGG=960 (40% of 2400)
         # Current values: SPY=2100, AGG=300
@@ -112,11 +109,9 @@ class TestRebalancingTrades:
         # Total: 6*300 + 4*300 = 3000
         # Current weights: SPY=60%, AGG=40%
 
-        target_strategy = AllocationStrategy(
-            name="60/40", asset_weights={"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
-        )
+        target_weights = {"SPY": Decimal("0.6"), "AGG": Decimal("0.4")}
 
-        trades = calculate_rebalancing_trades(current_state, target_strategy)
+        trades = calculate_rebalancing_trades(current_state, target_weights)
 
         # All trades should be very small (near zero due to rounding)
         for symbol, quantity in trades.items():
@@ -131,11 +126,9 @@ class TestRebalancingTrades:
             current_prices={"SPY": Decimal("300"), "AGG": Decimal("100")},
         )
 
-        target_strategy = AllocationStrategy(
-            name="Test", asset_weights={"SPY": Decimal("0.7"), "AGG": Decimal("0.3")}
-        )
+        target_weights = {"SPY": Decimal("0.7"), "AGG": Decimal("0.3")}
 
-        trades = calculate_rebalancing_trades(current_state, target_strategy)
+        trades = calculate_rebalancing_trades(current_state, target_weights)
 
         # Apply trades to portfolio
         new_holdings = {}

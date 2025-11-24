@@ -1,6 +1,9 @@
 """Data validation utilities."""
 
+from datetime import date
+
 import pandas as pd
+
 from ..backtesting.exceptions import DataError
 
 
@@ -70,3 +73,33 @@ def validate_exchange_rate_data(df: pd.DataFrame) -> None:
                 f"{group_df.iloc[0]['from_currency']}/{group_df.iloc[0]['to_currency']}"
             )
             raise DataError(f"Dates not chronological for {pair}")
+
+
+def validate_lookback_data(
+    df: pd.DataFrame,
+    calculation_date: date,
+    lookback_days: int,
+    assets: list[str],
+) -> None:
+    """Validate sufficient data exists for lookback window.
+
+    Args:
+        df: Price data DataFrame with columns [date, symbol, price]
+        calculation_date: Date for weight calculation
+        lookback_days: Required lookback period
+        assets: Assets to validate
+
+    Raises:
+        DataError: If insufficient data for any asset
+    """
+    historical_data = df[df["date"] < calculation_date]
+
+    for asset in assets:
+        asset_data = historical_data[historical_data["symbol"] == asset]
+        available_days = len(asset_data)
+
+        if available_days < lookback_days:
+            raise DataError(
+                f"{asset}: only {available_days} days available before {calculation_date}, "
+                f"need {lookback_days} for lookback window"
+            )

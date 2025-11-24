@@ -6,7 +6,6 @@ import pandas as pd
 
 from ..models import RebalancingFrequency
 from ..models.portfolio_state import PortfolioState
-from ..models.strategy import AllocationStrategy
 
 
 def generate_rebalancing_dates(
@@ -68,13 +67,14 @@ def generate_rebalancing_dates(
 
 
 def calculate_rebalancing_trades(
-    current_state: PortfolioState, target_strategy: AllocationStrategy
+    current_state: PortfolioState,
+    target_weights: dict[str, Decimal],
 ) -> dict[str, Decimal]:
     """Calculate trades needed to rebalance portfolio to target weights.
 
     Args:
         current_state: Current portfolio state
-        target_strategy: Target allocation strategy
+        target_weights: Target allocation weights
 
     Returns:
         Dictionary mapping symbol to quantity change (+ for buy, - for sell)
@@ -82,11 +82,11 @@ def calculate_rebalancing_trades(
     total_value = current_state.total_value
 
     if total_value == 0:
-        return {symbol: Decimal("0") for symbol in target_strategy.asset_weights.keys()}
+        return {symbol: Decimal("0") for symbol in target_weights.keys()}
 
     trades = {}
 
-    for symbol, target_weight in target_strategy.asset_weights.items():
+    for symbol, target_weight in target_weights.items():
         # Calculate target value for this asset
         target_value = total_value * target_weight
 
