@@ -12,6 +12,7 @@ from ..models.portfolio_state import PortfolioState
 from ..models.trade import Trade
 from ..models.performance import PerformanceMetrics
 from .exceptions import DataError
+from .price_window import InsufficientDataError
 from . import metrics
 from .rebalancer import generate_rebalancing_dates, calculate_rebalancing_trades
 
@@ -76,10 +77,18 @@ class BacktestEngine:
 
         # Initialize portfolio on first day
         first_date = trading_dates[0]
-        prices_first = self._get_prices_for_date(price_data, first_date, strategy)
+
+        # Get initial weights (static or dynamic)
+        current_weights = self._get_strategy_weights(
+            strategy, first_date, price_data, previous_weights=None
+        )
+
+        prices_first = self._get_prices_for_date(
+            price_data, first_date, list(current_weights.keys())
+        )
 
         portfolio = self._initialize_portfolio(
-            config.initial_capital, strategy, prices_first, first_date
+            config.initial_capital, current_weights, prices_first, first_date
         )
 
         # Record initial purchase trades
@@ -108,9 +117,17 @@ class BacktestEngine:
 
         # Simulate remaining days
         for current_date in trading_dates[1:]:
-            # Get current prices
+            # Check if rebalancing is needed
+            if current_date in rebalancing_dates:
+                # Get new weights for dynamic strategies
+                new_weights = self._get_strategy_weights(
+                    strategy, current_date, price_data, previous_weights=current_weights
+                )
+                current_weights = new_weights
+
+            # Get current prices for all assets in current allocation
             current_prices = self._get_prices_for_date(
-                price_data, current_date, strategy
+                price_data, current_date, list(current_weights.keys())
             )
 
             # Update portfolio state with current prices
@@ -121,10 +138,10 @@ class BacktestEngine:
                 current_prices=current_prices,
             )
 
-            # Check if rebalancing is needed
+            # Execute rebalancing if needed
             if current_date in rebalancing_dates:
                 portfolio, rebalance_trades = self._rebalance_portfolio(
-                    portfolio, strategy, config
+                    portfolio, current_weights, config
                 )
                 trades.extend(rebalance_trades)
 
@@ -145,15 +162,15 @@ class BacktestEngine:
     def _initialize_portfolio(
         self,
         initial_capital: Decimal,
-        strategy: AllocationStrategy,
+        target_weights: dict[str, Decimal],
         initial_prices: dict[str, Decimal],
         timestamp: date,
     ) -> PortfolioState:
-        """Initialize portfolio by purchasing assets according to strategy weights.
+        """Initialize portfolio by purchasing assets according to target weights.
 
         Args:
             initial_capital: Starting capital
-            strategy: Allocation strategy
+            target_weights: Target allocation weights
             initial_prices: Initial prices for all assets
             timestamp: Date of initialization
 
@@ -163,7 +180,7 @@ class BacktestEngine:
         asset_holdings = {}
 
         # Calculate how much to invest in each asset
-        for symbol, weight in strategy.asset_weights.items():
+        for symbol, weight in target_weights.items():
             target_value = initial_capital * weight
             price = initial_prices[symbol]
 
@@ -196,7 +213,7 @@ class BacktestEngine:
         self,
         price_data: pd.DataFrame,
         target_date: date,
-        strategy: AllocationStrategy,
+        symbols: list[str],
         max_lookback_days: int = 5,
     ) -> dict[str, Decimal]:
         """Get prices for all assets on a specific date with forward-fill.
@@ -207,7 +224,7 @@ class BacktestEngine:
         Args:
             price_data: Historical price DataFrame
             target_date: Date to get prices for
-            strategy: Strategy (to know which symbols needed)
+            symbols: List of symbols to get prices for
             max_lookback_days: Maximum days to look back for missing data
 
         Returns:
@@ -218,7 +235,7 @@ class BacktestEngine:
         """
         prices = {}
 
-        for symbol in strategy.asset_weights.keys():
+        for symbol in symbols:
             price_found = False
 
             # Try target date first, then look back up to max_lookback_days
@@ -319,21 +336,21 @@ class BacktestEngine:
     def _rebalance_portfolio(
         self,
         current_state: PortfolioState,
-        strategy: AllocationStrategy,
+        target_weights: dict[str, Decimal],
         config: BacktestConfiguration,
     ) -> tuple[PortfolioState, list[Trade]]:
         """Rebalance portfolio to target weights.
 
         Args:
             current_state: Current portfolio state
-            strategy: Target allocation strategy
+            target_weights: Target allocation weights
             config: Backtest configuration
 
         Returns:
             Tuple of (new portfolio state, list of trades executed)
         """
         # Calculate required trades
-        trade_quantities = calculate_rebalancing_trades(current_state, strategy)
+        trade_quantities = calculate_rebalancing_trades(current_state, target_weights)
 
         trades = []
         new_holdings = current_state.asset_holdings.copy()
@@ -400,3 +417,50 @@ class BacktestEngine:
 
         # Round to 2 decimal places
         return total_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def _get_strategy_weights(
+        self,
+        strategy: AllocationStrategy,
+        calculation_date: date,
+        price_data: pd.DataFrame,
+        previous_weights: dict[str, Decimal] | None = None,
+    ) -> dict[str, Decimal]:
+        """Get target weights from strategy (static or dynamic).
+
+        For dynamic strategies (those with calculate_weights method), calls the
+        method to compute weights based on historical data. For static strategies,
+        returns the fixed asset_weights.
+
+        Args:
+            strategy: Allocation strategy
+            calculation_date: Date for weight calculation
+            price_data: Historical price data
+            previous_weights: Previous weights to use if insufficient data
+
+        Returns:
+            Dictionary mapping symbol to weight (as Decimal)
+
+        Raises:
+            DataError: If dynamic strategy has insufficient data and no previous weights
+        """
+        # Check if dynamic strategy using duck typing
+        if hasattr(strategy, "calculate_weights") and callable(
+            getattr(strategy, "calculate_weights")
+        ):
+            try:
+                calculated = strategy.calculate_weights(calculation_date, price_data)
+                return calculated.weights
+            except InsufficientDataError as e:
+                if previous_weights:
+                    logging.warning(
+                        f"Insufficient data for {calculation_date}: {e}. "
+                        f"Using previous weights."
+                    )
+                    return previous_weights
+                else:
+                    raise DataError(
+                        f"Insufficient data for initial calculation: {e}"
+                    ) from e
+        else:
+            # Static strategy - return fixed weights
+            return strategy.asset_weights
