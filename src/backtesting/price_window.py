@@ -141,3 +141,81 @@ def get_price_window(
 
     price_window.validate()
     return price_window
+
+
+def get_price_window_with_fallback(
+    prices_df: pd.DataFrame,
+    calculation_date: date,
+    lookback_days: int,
+    assets: list[str],
+) -> tuple[PriceWindow, list[str]]:
+    """Extract price window with per-asset fallback for partial data.
+
+    Tries to get price window for all assets. If that fails due to insufficient
+    data, tries each asset individually and includes only those with complete data.
+    This prevents total failure when some assets have insufficient data.
+
+    Args:
+        prices_df: DataFrame with columns [date, symbol, price]
+        calculation_date: Date for which to calculate weights
+        lookback_days: Number of trading days to look back
+        assets: List of asset symbols to include
+
+    Returns:
+        Tuple of (PriceWindow for complete assets, list of excluded asset symbols)
+
+    Raises:
+        InsufficientDataError: If no assets have sufficient data
+    """
+    # Try all assets first
+    try:
+        price_window = get_price_window(
+            prices_df=prices_df,
+            calculation_date=calculation_date,
+            lookback_days=lookback_days,
+            assets=assets,
+        )
+        # Filter to assets with complete data (no NaN values)
+        complete_assets = []
+        for symbol in price_window.prices.columns:
+            non_null_count = price_window.prices[symbol].notna().sum()
+            if non_null_count >= lookback_days:
+                complete_assets.append(symbol)
+
+        excluded_assets = [asset for asset in assets if asset not in complete_assets]
+        return price_window, excluded_assets
+    except InsufficientDataError:
+        pass
+
+    # Fallback: try each asset individually
+    complete_assets = []
+    for asset in assets:
+        try:
+            asset_window = get_price_window(
+                prices_df=prices_df,
+                calculation_date=calculation_date,
+                lookback_days=lookback_days,
+                assets=[asset],
+            )
+            # Check if asset has complete data
+            non_null_count = asset_window.prices[asset].notna().sum()
+            if non_null_count >= lookback_days:
+                complete_assets.append(asset)
+        except InsufficientDataError:
+            pass
+
+    if not complete_assets:
+        raise InsufficientDataError(
+            f"No assets have sufficient data for {lookback_days}-day lookback"
+        )
+
+    # Get price window for complete assets only
+    price_window = get_price_window(
+        prices_df=prices_df,
+        calculation_date=calculation_date,
+        lookback_days=lookback_days,
+        assets=complete_assets,
+    )
+
+    excluded_assets = [asset for asset in assets if asset not in complete_assets]
+    return price_window, excluded_assets

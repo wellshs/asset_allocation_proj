@@ -5,11 +5,11 @@ from decimal import Decimal
 
 import pandas as pd
 
-from ..backtesting.price_window import get_price_window, InsufficientDataError
+from ..backtesting.price_window import get_price_window_with_fallback
 from ..models.calculated_weights import CalculatedWeights
 from ..models.strategy_params import DualMomentumParameters
 from .base import DynamicAllocationStrategy
-from .utils import normalize_weights, filter_complete_assets
+from .utils import normalize_weights
 
 
 class DualMomentumStrategy(DynamicAllocationStrategy):
@@ -49,52 +49,16 @@ class DualMomentumStrategy(DynamicAllocationStrategy):
         Raises:
             InsufficientDataError: If not enough historical data
         """
-        # Get price window for lookback period (need full long_window)
-        try:
-            price_window = get_price_window(
-                prices_df=price_data,
-                calculation_date=calculation_date,
-                lookback_days=self.parameters.lookback_days,
-                assets=self.parameters.assets,
-            )
-            complete_assets = filter_complete_assets(
-                price_window.prices, required_days=self.parameters.lookback_days
-            )
-        except InsufficientDataError:
-            # Try each asset individually
-            complete_assets = []
-            for asset in self.parameters.assets:
-                try:
-                    asset_window = get_price_window(
-                        prices_df=price_data,
-                        calculation_date=calculation_date,
-                        lookback_days=self.parameters.lookback_days,
-                        assets=[asset],
-                    )
-                    asset_complete = filter_complete_assets(
-                        asset_window.prices, required_days=self.parameters.lookback_days
-                    )
-                    if asset in asset_complete:
-                        complete_assets.append(asset)
-                except InsufficientDataError:
-                    pass
+        # Get price window with automatic fallback for partial data
+        price_window, excluded_assets = get_price_window_with_fallback(
+            prices_df=price_data,
+            calculation_date=calculation_date,
+            lookback_days=self.parameters.lookback_days,
+            assets=self.parameters.assets,
+        )
 
-            if not complete_assets:
-                raise InsufficientDataError(
-                    f"No assets have sufficient data for {self.parameters.lookback_days}-day lookback"
-                )
-
-            # Get price window for complete assets only
-            price_window = get_price_window(
-                prices_df=price_data,
-                calculation_date=calculation_date,
-                lookback_days=self.parameters.lookback_days,
-                assets=complete_assets,
-            )
-
-        # Track excluded assets
-        excluded_assets = [
-            asset for asset in self.parameters.assets if asset not in complete_assets
+        complete_assets = [
+            asset for asset in self.parameters.assets if asset not in excluded_assets
         ]
 
         # Calculate MA signals for complete assets
