@@ -1,7 +1,7 @@
 """Data models for brokerage account integration."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Optional, Dict
@@ -62,7 +62,7 @@ class BrokerageAccount:
             return False
         if self.access_token is None or self.token_expiry is None:
             return False
-        return datetime.now() < self.token_expiry
+        return datetime.now(timezone.utc) < self.token_expiry
 
 
 @dataclass

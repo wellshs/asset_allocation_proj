@@ -1,7 +1,7 @@
 """Integration tests for account operations."""
 
 from unittest.mock import patch, Mock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class TestEndToEndAuthenticationAndFetch:
@@ -76,7 +76,7 @@ class TestTokenRefreshOnExpiry:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="expired_token",
-            token_expiry=datetime.now() - timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) - timedelta(hours=1),
         )
 
         credentials = AccountCredentials(
@@ -92,7 +92,7 @@ class TestTokenRefreshOnExpiry:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="new_token",
-            token_expiry=datetime.now() + timedelta(hours=24),
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=24),
         )
 
         refreshed = refresh_token(account, credentials)
@@ -129,7 +129,7 @@ class TestRetryOnTransientFailure:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="test_token",
-            token_expiry=datetime.now() + timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
 
         holdings = provider.fetch_holdings(account)

@@ -9,6 +9,7 @@ from src.account.models import (
 from decimal import Decimal
 from src.account.auth import authenticate, get_provider
 from src.account.config import load_config
+from src.account.logging import logger
 
 
 class AccountService:
@@ -117,7 +118,7 @@ class AccountService:
                 all_holdings[account_config.name] = holdings
             except Exception as e:
                 # Log error but continue with other accounts
-                print(f"Warning: Failed to fetch {account_config.name}: {e}")
+                logger.warning(f"Failed to fetch {account_config.name}: {e}")
                 continue
 
         return all_holdings
@@ -134,7 +135,7 @@ class AccountService:
         Returns:
             AccountHoldings: Consolidated holdings
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
         from collections import defaultdict
 
         total_cash = Decimal("0")
@@ -160,11 +161,20 @@ class AccountService:
         # Convert to SecurityPosition list
         consolidated_positions = []
         for symbol, data in position_map.items():
-            avg_price = (
-                data["value"] / data["quantity"]
-                if data["quantity"] > 0
-                else Decimal("0")
-            )
+            try:
+                avg_price = (
+                    data["value"] / data["quantity"]
+                    if data["quantity"] > 0
+                    else Decimal("0")
+                )
+                # Validate avg_price is finite
+                if not avg_price.is_finite():
+                    logger.warning(f"Invalid average price for {symbol}: {avg_price}")
+                    avg_price = Decimal("0")
+            except Exception as e:
+                logger.error(f"Error calculating average price for {symbol}: {e}")
+                avg_price = Decimal("0")
+
             position = SecurityPosition(
                 symbol=symbol,
                 name=data["name"],
@@ -179,7 +189,7 @@ class AccountService:
 
         return AccountHoldings(
             account_id="consolidated",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=total_cash,
             positions=consolidated_positions,
             total_value=total_value,

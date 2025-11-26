@@ -1,7 +1,7 @@
 """Korea Investment & Securities provider implementation."""
 
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict
 
@@ -77,7 +77,9 @@ class KoreaInvestmentProvider(AccountProvider):
             # Update account with auth info
             account.status = AccountStatus.CONNECTED
             account.access_token = access_token
-            account.token_expiry = datetime.now() + timedelta(seconds=expires_in)
+            account.token_expiry = datetime.now(timezone.utc) + timedelta(
+                seconds=expires_in
+            )
 
             return account
 
@@ -183,7 +185,7 @@ class KoreaInvestmentProvider(AccountProvider):
 
         return AccountHoldings(
             account_id=account_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=cash_balance,
             positions=positions,
             total_value=total_value,

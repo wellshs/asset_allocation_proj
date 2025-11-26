@@ -1,6 +1,6 @@
 """Authentication logic for brokerage accounts."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from src.account.models import BrokerageAccount
 from src.account.config import AccountCredentials
 from src.account.exceptions import AccountAuthException
@@ -64,7 +64,7 @@ def check_token_expiry(account: BrokerageAccount) -> bool:
     """
     if account.token_expiry is None:
         return False
-    return datetime.now() < account.token_expiry
+    return datetime.now(timezone.utc) < account.token_expiry
 
 
 def refresh_token(

@@ -1,7 +1,7 @@
 """Unit tests for Korea Investment & Securities provider."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import Mock, patch
 import json
@@ -102,7 +102,7 @@ class TestKoreaInvestmentFetchHoldings:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="test_token",
-            token_expiry=datetime.now() + timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
 
         holdings = provider.fetch_holdings(account)
@@ -134,7 +134,7 @@ class TestKoreaInvestmentFetchHoldings:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="test_token",
-            token_expiry=datetime.now() + timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
 
         holdings = provider.fetch_holdings(account)
@@ -183,7 +183,7 @@ class TestErrorHandling:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="test_token",
-            token_expiry=datetime.now() + timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
 
         with pytest.raises(AccountAPIException):
@@ -208,7 +208,7 @@ class TestErrorHandling:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="test_token",
-            token_expiry=datetime.now() + timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
 
         with pytest.raises(AccountAPIException):
@@ -240,7 +240,7 @@ class TestRateLimitingIntegration:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="test_token",
-            token_expiry=datetime.now() + timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
 
         # First request should be fast

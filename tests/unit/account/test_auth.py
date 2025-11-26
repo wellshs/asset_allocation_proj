@@ -1,7 +1,7 @@
 """Unit tests for authentication module."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 
@@ -36,7 +36,7 @@ class TestAuthentication:
                 account_number="1234567890",
                 status=AccountStatus.CONNECTED,
                 access_token="mock_token",
-                token_expiry=datetime.now() + timedelta(hours=24),
+                token_expiry=datetime.now(timezone.utc) + timedelta(hours=24),
             )
             mock_get_provider.return_value = mock_provider
 
@@ -85,7 +85,7 @@ class TestTokenExpiry:
         from src.account.auth import check_token_expiry
         from src.account.models import BrokerageAccount, AccountStatus
 
-        future_time = datetime.now() + timedelta(hours=1)
+        future_time = datetime.now(timezone.utc) + timedelta(hours=1)
         account = BrokerageAccount(
             account_id="test",
             provider="korea_investment",
@@ -103,7 +103,7 @@ class TestTokenExpiry:
         from src.account.auth import check_token_expiry
         from src.account.models import BrokerageAccount, AccountStatus
 
-        past_time = datetime.now() - timedelta(hours=1)
+        past_time = datetime.now(timezone.utc) - timedelta(hours=1)
         account = BrokerageAccount(
             account_id="test",
             provider="korea_investment",
@@ -132,7 +132,7 @@ class TestAutoReauthentication:
             account_number="1234567890",
             status=AccountStatus.CONNECTED,
             access_token="old_token",
-            token_expiry=datetime.now() - timedelta(hours=1),
+            token_expiry=datetime.now(timezone.utc) - timedelta(hours=1),
         )
 
         credentials = AccountCredentials(
@@ -148,10 +148,10 @@ class TestAutoReauthentication:
                 account_number="1234567890",
                 status=AccountStatus.CONNECTED,
                 access_token="new_token",
-                token_expiry=datetime.now() + timedelta(hours=24),
+                token_expiry=datetime.now(timezone.utc) + timedelta(hours=24),
             )
 
             result = refresh_token(account, credentials)
 
             assert result.access_token == "new_token"
-            assert result.token_expiry > datetime.now()
+            assert result.token_expiry > datetime.now(timezone.utc)

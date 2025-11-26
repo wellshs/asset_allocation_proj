@@ -1,6 +1,6 @@
 """Unit tests for account data models."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 
@@ -28,7 +28,7 @@ class TestBrokerageAccount:
         """Test is_authenticated returns True for valid token."""
         from src.account.models import BrokerageAccount, AccountStatus
 
-        future_time = datetime.now() + timedelta(hours=1)
+        future_time = datetime.now(timezone.utc) + timedelta(hours=1)
         account = BrokerageAccount(
             account_id="test",
             provider="korea_investment",
@@ -44,7 +44,7 @@ class TestBrokerageAccount:
         """Test is_authenticated returns False for expired token."""
         from src.account.models import BrokerageAccount, AccountStatus
 
-        past_time = datetime.now() - timedelta(hours=1)
+        past_time = datetime.now(timezone.utc) - timedelta(hours=1)
         account = BrokerageAccount(
             account_id="test",
             provider="korea_investment",
@@ -60,7 +60,7 @@ class TestBrokerageAccount:
         """Test is_authenticated returns False when disconnected."""
         from src.account.models import BrokerageAccount, AccountStatus
 
-        future_time = datetime.now() + timedelta(hours=1)
+        future_time = datetime.now(timezone.utc) + timedelta(hours=1)
         account = BrokerageAccount(
             account_id="test",
             provider="korea_investment",
@@ -93,7 +93,7 @@ class TestAccountHoldings:
 
         holdings = AccountHoldings(
             account_id="test",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=Decimal("1000000"),
             positions=positions,
             total_value=Decimal("8100000"),
@@ -110,7 +110,7 @@ class TestAccountHoldings:
 
         holdings = AccountHoldings(
             account_id="test",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=Decimal("5000000"),
             positions=[],
             total_value=Decimal("5000000"),
@@ -205,7 +205,7 @@ class TestAccountHoldingsConversion:
 
         holdings = AccountHoldings(
             account_id="test",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=Decimal("1000000"),
             positions=positions,
             total_value=Decimal("10600000"),
@@ -227,7 +227,7 @@ class TestAccountHoldingsConversion:
 
         holdings = AccountHoldings(
             account_id="test",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=Decimal("5000000"),
             positions=[],
             total_value=Decimal("5000000"),

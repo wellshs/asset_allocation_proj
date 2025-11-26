@@ -52,7 +52,7 @@ class TestIncompleteDataHandling:
         """Test warning detection for missing price data."""
         from src.account.service import AccountService
         from src.account.models import AccountHoldings, SecurityPosition
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         service = AccountService.__new__(AccountService)
 
@@ -67,7 +67,7 @@ class TestIncompleteDataHandling:
 
         holdings = AccountHoldings(
             account_id="test",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=Decimal("1000000"),
             positions=[position],
             total_value=Decimal("1000000"),
@@ -83,7 +83,7 @@ class TestNonStandardAssetHandling:
     def test_non_standard_assets_displayed(self):
         """Test that non-standard assets are included in holdings."""
         from src.account.models import AccountHoldings, SecurityPosition, AssetType
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         position = SecurityPosition(
             symbol="OPTION123",
@@ -97,7 +97,7 @@ class TestNonStandardAssetHandling:
 
         holdings = AccountHoldings(
             account_id="test",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             cash_balance=Decimal("1000000"),
             positions=[position],
             total_value=Decimal("1055000"),

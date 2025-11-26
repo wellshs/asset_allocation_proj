@@ -2,6 +2,7 @@
 
 import threading
 from typing import Optional, Callable
+from src.account.logging import logger
 
 
 class Scheduler:
@@ -23,23 +24,23 @@ class Scheduler:
     def start(self):
         """Start the scheduler in a background thread."""
         if self._thread and self._thread.is_alive():
-            print("Scheduler already running")
+            logger.info("Scheduler already running")
             return
 
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
-        print(f"Scheduler started (interval: {self.interval_minutes} minutes)")
+        logger.info(f"Scheduler started (interval: {self.interval_minutes} minutes)")
 
     def stop(self):
         """Stop the scheduler gracefully."""
         if not self._thread or not self._thread.is_alive():
-            print("Scheduler not running")
+            logger.info("Scheduler not running")
             return
 
         self._stop_event.set()
         self._thread.join(timeout=5)
-        print("Scheduler stopped")
+        logger.info("Scheduler stopped")
 
     def _run(self):
         """Main scheduler loop."""
@@ -52,7 +53,7 @@ class Scheduler:
                 self._stop_event.wait(timeout=self.interval_minutes * 60)
 
             except Exception as e:
-                print(f"Error in scheduled refresh: {e}")
+                logger.error(f"Error in scheduled refresh: {e}")
                 # Continue running despite errors
                 self._stop_event.wait(timeout=60)  # Wait 1 minute before retrying
 
@@ -61,7 +62,7 @@ class Scheduler:
         try:
             self.callback()
         except Exception as e:
-            print(f"Scheduled fetch failed: {e}")
+            logger.error(f"Scheduled fetch failed: {e}")
             # Don't re-raise - log and continue
 
 
@@ -81,9 +82,7 @@ def create_auto_refresh_scheduler(service, config) -> Optional[Scheduler]:
 
     def refresh_callback():
         """Callback for scheduled refresh."""
-        print(f"\n{'='*60}")
-        print("Auto-refresh triggered")
-        print(f"{'='*60}")
+        logger.info("Auto-refresh triggered")
 
         try:
             all_holdings = service.get_all_holdings()
@@ -101,10 +100,10 @@ def create_auto_refresh_scheduler(service, config) -> Optional[Scheduler]:
                             "auto_refresh",
                         )
 
-            print(f"Auto-refresh completed: {len(all_holdings)} accounts")
+            logger.info(f"Auto-refresh completed: {len(all_holdings)} accounts")
 
         except Exception as e:
-            print(f"Auto-refresh error: {e}")
+            logger.error(f"Auto-refresh error: {e}")
 
     scheduler = Scheduler(
         interval_minutes=config.refresh.interval_minutes, callback=refresh_callback

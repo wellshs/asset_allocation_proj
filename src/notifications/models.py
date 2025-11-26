@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class NotificationStatus(Enum):
@@ -43,4 +43,4 @@ class SlackNotification:
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now(timezone.utc)

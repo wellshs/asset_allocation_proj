@@ -3,6 +3,7 @@
 import requests
 
 from src.notifications.models import SlackNotification, NotificationStatus
+from src.account.logging import logger
 
 
 class SlackClient:
@@ -41,20 +42,22 @@ class SlackClient:
                 return True
             else:
                 notification.status = NotificationStatus.FAILED
-                print(f"Slack webhook failed: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Slack webhook failed: {response.status_code} - {response.text}"
+                )
                 return False
 
         except requests.Timeout:
             notification.status = NotificationStatus.FAILED
-            print("Slack webhook timeout")
+            logger.error("Slack webhook timeout")
             return False
         except requests.RequestException as e:
             notification.status = NotificationStatus.FAILED
-            print(f"Slack webhook error: {e}")
+            logger.error(f"Slack webhook error: {e}")
             return False
         except Exception as e:
             notification.status = NotificationStatus.FAILED
-            print(f"Unexpected error sending Slack notification: {e}")
+            logger.error(f"Unexpected error sending Slack notification: {e}")
             return False
 
     @staticmethod
@@ -67,8 +70,15 @@ class SlackClient:
 
         Returns:
             bool: True if URL format is valid
+
+        Raises:
+            ValueError: If webhook URL is invalid
         """
-        return url.startswith("https://hooks.slack.com/services/")
+        if not url.startswith("https://hooks.slack.com/services/"):
+            raise ValueError(
+                f"Invalid Slack webhook URL: must start with https://hooks.slack.com/services/"
+            )
+        return True
 
 
 def send_portfolio_update(
@@ -93,8 +103,10 @@ def send_portfolio_update(
     from src.notifications.models import NotificationTrigger
 
     # Validate webhook URL
-    if not SlackClient.validate_webhook_url(webhook_url):
-        print(f"Invalid Slack webhook URL: {webhook_url}")
+    try:
+        SlackClient.validate_webhook_url(webhook_url)
+    except ValueError as e:
+        logger.error(str(e))
         return False
 
     # Format message
