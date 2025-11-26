@@ -1,0 +1,45 @@
+version: "1.0"
+
+# Brokerage account configurations
+# You can configure multiple accounts for different brokerages
+accounts:
+  - name: "My Main Account"
+    provider: "korea_investment"  # Currently only korea_investment is supported
+    enabled: true
+    credentials:
+      # Get these from https://apiportal.koreainvestment.com
+      # After first run, these will be encrypted automatically
+      app_key: "YOUR_APP_KEY_HERE"
+      app_secret: "YOUR_APP_SECRET_HERE"
+      account_number: "YOUR_ACCOUNT_NUMBER"  # Format: 10 digits (e.g., 5006800001)
+    settings:
+      rate_limit_delay: 1.1  # Seconds between API requests (default: 1.1)
+      timeout_seconds: 30     # Request timeout (default: 30)
+
+  # Example: Add more accounts by copying the structure above
+  # - name: "Secondary Account"
+  #   provider: "korea_investment"
+  #   enabled: true
+  #   credentials:
+  #     app_key: "YOUR_SECOND_APP_KEY"
+  #     app_secret: "YOUR_SECOND_APP_SECRET"
+  #     account_number: "YOUR_SECOND_ACCOUNT_NUMBER"
+  #   settings:
+  #     rate_limit_delay: 1.1
+
+# Slack notification settings
+notifications:
+  slack:
+    enabled: true  # Set to false to disable Slack notifications
+    webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+    triggers:
+      - "manual_refresh"   # Send notification on manual fetch command
+      - "auto_refresh"     # Send notification on scheduled auto-refresh
+      # - "on_demand"      # Send notification when explicitly requested
+      # - "error"          # Send notification on errors
+    format: "detailed"     # Options: "detailed" (full holdings list) or "summary" (top 10 only)
+
+# Automatic refresh settings
+refresh:
+  auto_enabled: false       # Enable automatic periodic refresh
+  interval_minutes: 60      # Refresh interval in minutes (only used if auto_enabled is true)

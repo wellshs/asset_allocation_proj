@@ -1,0 +1,59 @@
+{
+  "auth_success": {
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "token_type": "Bearer",
+    "expires_in": 86400,
+    "access_token_token_expired": "2025-11-25 15:30:00"
+  },
+  "holdings_with_positions": {
+    "rt_cd": "0",
+    "msg_cd": "MCA00000",
+    "msg1": "정상처리 되었습니다.",
+    "output1": {
+      "dnca_tot_amt": "1000000",
+      "nxdy_excc_amt": "950000",
+      "tot_evlu_amt": "10500000",
+      "pchs_amt_smtl_amt": "10000000",
+      "evlu_amt_smtl_amt": "9500000",
+      "evlu_pfls_smtl_amt": "-500000"
+    },
+    "output2": [
+      {
+        "pdno": "005930",
+        "prdt_name": "삼성전자",
+        "hldg_qty": "100",
+        "pchs_avg_pric": "70000",
+        "prpr": "71000",
+        "evlu_amt": "7100000",
+        "evlu_pfls_amt": "100000",
+        "evlu_pfls_rt": "1.43"
+      },
+      {
+        "pdno": "035720",
+        "prdt_name": "카카오",
+        "hldg_qty": "50",
+        "pchs_avg_pric": "48000",
+        "prpr": "50000",
+        "evlu_amt": "2500000",
+        "evlu_pfls_amt": "100000",
+        "evlu_pfls_rt": "4.17"
+      }
+    ]
+  },
+  "holdings_no_positions": {
+    "rt_cd": "0",
+    "msg_cd": "MCA00000",
+    "msg1": "정상처리 되었습니다.",
+    "output1": {
+      "dnca_tot_amt": "1000000",
+      "nxdy_excc_amt": "1000000",
+      "tot_evlu_amt": "1000000"
+    },
+    "output2": []
+  },
+  "auth_error": {
+    "rt_cd": "1",
+    "msg_cd": "EGW00401",
+    "msg1": "Invalid credentials"
+  }
+}

@@ -1,0 +1,370 @@
+openapi: 3.0.3
+info:
+  title: Korea Investment & Securities Holdings API
+  description: Contract specification for retrieving account balance and holdings
+  version: 1.0.0
+  contact:
+    name: Korea Investment & Securities Open API
+    url: https://apiportal.koreainvestment.com
+
+servers:
+  - url: https://openapi.koreainvestment.com:9443
+    description: Production server
+
+paths:
+  /uapi/domestic-stock/v1/trading/inquire-balance:
+    get:
+      summary: Get Account Balance and Holdings
+      description: Retrieve current cash balance and all security holdings for an account
+      operationId: getAccountHoldings
+      tags:
+        - Trading
+        - Holdings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: authorization
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Bearer token from /oauth2/tokenP
+          example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        - name: appkey
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Application key
+        - name: appsecret
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Application secret
+        - name: tr_id
+          in: header
+          required: true
+          schema:
+            type: string
+            enum: [TTTC8434R, VTTC8434R]
+          description: Transaction ID (TTTC8434R = real, VTTC8434R = virtual)
+        - name: CANO
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Account number (first part)
+          example: "50068000"
+        - name: ACNT_PRDT_CD
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Account product code (last 2 digits)
+          example: "01"
+        - name: AFHR_FLPR_YN
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["N", "Y"]
+            default: "N"
+          description: After-hours closing price flag
+        - name: OFL_YN
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["N", "Y"]
+            default: "N"
+          description: Offline flag
+        - name: INQR_DVSN
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: ["01", "02"]
+          description: Inquiry division (01 = all, 02 = profit/loss)
+          example: "01"
+        - name: UNPR_DVSN
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["01", "02"]
+            default: "01"
+          description: Unit price division
+        - name: FUND_STTL_ICLD_YN
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["N", "Y"]
+            default: "N"
+          description: Fund settlement included flag
+        - name: FNCG_AMT_AUTO_RDPT_YN
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["N", "Y"]
+            default: "N"
+          description: Financing amount auto redemption flag
+        - name: PRCS_DVSN
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["00", "01"]
+            default: "00"
+          description: Process division
+        - name: CTX_AREA_FK100
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Continuation key for pagination
+        - name: CTX_AREA_NK100
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Continuation key for pagination
+
+      responses:
+        '200':
+          description: Successful response with account holdings
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - rt_cd
+                  - msg_cd
+                  - msg1
+                  - output1
+                  - output2
+                properties:
+                  rt_cd:
+                    type: string
+                    description: Return code ("0" = success)
+                    example: "0"
+                  msg_cd:
+                    type: string
+                    description: Message code
+                    example: "MCA00000"
+                  msg1:
+                    type: string
+                    description: Response message
+                    example: "정상처리 되었습니다."
+                  output1:
+                    type: object
+                    description: Account summary
+                    required:
+                      - dnca_tot_amt
+                      - nxdy_excc_amt
+                      - tot_evlu_amt
+                    properties:
+                      dnca_tot_amt:
+                        type: string
+                        description: Total deposit amount (cash balance)
+                        example: "1000000"
+                      nxdy_excc_amt:
+                        type: string
+                        description: Next day excess amount
+                        example: "950000"
+                      tot_evlu_amt:
+                        type: string
+                        description: Total evaluation amount (cash + holdings)
+                        example: "10500000"
+                      pchs_amt_smtl_amt:
+                        type: string
+                        description: Total purchase amount
+                        example: "10000000"
+                      evlu_amt_smtl_amt:
+                        type: string
+                        description: Total evaluation amount (holdings only)
+                        example: "9500000"
+                      evlu_pfls_smtl_amt:
+                        type: string
+                        description: Total profit/loss amount
+                        example: "-500000"
+                  output2:
+                    type: array
+                    description: List of security holdings
+                    items:
+                      type: object
+                      required:
+                        - pdno
+                        - prdt_name
+                        - hldg_qty
+                        - pchs_avg_pric
+                        - prpr
+                        - evlu_amt
+                      properties:
+                        pdno:
+                          type: string
+                          description: Stock code (symbol)
+                          example: "005930"
+                        prdt_name:
+                          type: string
+                          description: Product name (security name)
+                          example: "삼성전자"
+                        hldg_qty:
+                          type: string
+                          description: Holding quantity
+                          example: "100"
+                        pchs_avg_pric:
+                          type: string
+                          description: Average purchase price
+                          example: "70000"
+                        prpr:
+                          type: string
+                          description: Current price
+                          example: "71000"
+                        evlu_amt:
+                          type: string
+                          description: Evaluation amount (quantity * current price)
+                          example: "7100000"
+                        evlu_pfls_amt:
+                          type: string
+                          description: Profit/loss amount
+                          example: "100000"
+                        evlu_pfls_rt:
+                          type: string
+                          description: Profit/loss rate (percentage)
+                          example: "1.43"
+                        loan_dt:
+                          type: string
+                          description: Loan date (if margin)
+                          example: ""
+                        expd_dt:
+                          type: string
+                          description: Expiry date (if applicable)
+                          example: ""
+
+              examples:
+                successWithHoldings:
+                  summary: Successful response with holdings
+                  value:
+                    rt_cd: "0"
+                    msg_cd: "MCA00000"
+                    msg1: "정상처리 되었습니다."
+                    output1:
+                      dnca_tot_amt: "1000000"
+                      nxdy_excc_amt: "950000"
+                      tot_evlu_amt: "10500000"
+                      pchs_amt_smtl_amt: "10000000"
+                      evlu_amt_smtl_amt: "9500000"
+                      evlu_pfls_smtl_amt: "-500000"
+                    output2:
+                      - pdno: "005930"
+                        prdt_name: "삼성전자"
+                        hldg_qty: "100"
+                        pchs_avg_pric: "70000"
+                        prpr: "71000"
+                        evlu_amt: "7100000"
+                        evlu_pfls_amt: "100000"
+                        evlu_pfls_rt: "1.43"
+                      - pdno: "035720"
+                        prdt_name: "카카오"
+                        hldg_qty: "50"
+                        pchs_avg_pric: "48000"
+                        prpr: "50000"
+                        evlu_amt: "2500000"
+                        evlu_pfls_amt: "100000"
+                        evlu_pfls_rt: "4.17"
+
+                successNoHoldings:
+                  summary: Successful response with no holdings (cash only)
+                  value:
+                    rt_cd: "0"
+                    msg_cd: "MCA00000"
+                    msg1: "정상처리 되었습니다."
+                    output1:
+                      dnca_tot_amt: "1000000"
+                      nxdy_excc_amt: "1000000"
+                      tot_evlu_amt: "1000000"
+                    output2: []
+
+        '400':
+          description: Bad request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized - Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                expiredToken:
+                  summary: Token expired
+                  value:
+                    rt_cd: "1"
+                    msg_cd: "EGW00401"
+                    msg: "Access token expired"
+
+        '429':
+          description: Too many requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - rt_cd
+        - msg_cd
+        - msg1
+      properties:
+        rt_cd:
+          type: string
+          description: Return code ("1" = error)
+          example: "1"
+        msg_cd:
+          type: string
+          description: Error message code
+          example: "EGW00401"
+        msg1:
+          type: string
+          description: Human-readable error message
+          example: "Access token expired"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /oauth2/tokenP endpoint
+
+# Rate limiting information
+x-rate-limit:
+  requests_per_second: 1
+  burst: 1
+  policy: sliding_window
+
+# Implementation notes
+x-implementation-notes:
+  - All monetary values are returned as strings (convert to Decimal)
+  - Korean characters in prdt_name (ensure UTF-8 encoding)
+  - Empty output2 array means no holdings (cash-only account)
+  - Prices are in KRW (Korean Won)
+  - Respect rate limit of 1 request per second
+  - Token must be valid (check expiry before call)
+  - Account number split into CANO (8 digits) + ACNT_PRDT_CD (2 digits)
+  - Handle pagination with CTX_AREA_FK100/NK100 if holdings > 100

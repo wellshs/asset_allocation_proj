@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: Korea Investment & Securities Authentication API
+  description: Contract specification for Korea Investment & Securities OAuth2 authentication endpoint
+  version: 1.0.0
+  contact:
+    name: Korea Investment & Securities Open API
+    url: https://apiportal.koreainvestment.com
+
+servers:
+  - url: https://openapi.koreainvestment.com:9443
+    description: Production server
+
+paths:
+  /oauth2/tokenP:
+    post:
+      summary: Get Access Token
+      description: Authenticate with APP_KEY and APP_SECRET to obtain an access token for API calls
+      operationId: getAccessToken
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - grant_type
+                - appkey
+                - appsecret
+              properties:
+                grant_type:
+                  type: string
+                  enum: [client_credentials]
+                  description: OAuth2 grant type (always "client_credentials")
+                appkey:
+                  type: string
+                  description: Application key provided by Korea Investment
+                  minLength: 20
+                  maxLength: 50
+                appsecret:
+                  type: string
+                  description: Application secret provided by Korea Investment
+                  minLength: 20
+                  maxLength: 100
+            examples:
+              example1:
+                summary: Standard authentication request
+                value:
+                  grant_type: "client_credentials"
+                  appkey: "PSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  appsecret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - access_token
+                  - token_type
+                  - expires_in
+                properties:
+                  access_token:
+                    type: string
+                    description: Bearer token for API authentication
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                  token_type:
+                    type: string
+                    enum: [Bearer]
+                    description: Token type (always "Bearer")
+                  expires_in:
+                    type: integer
+                    description: Token lifetime in seconds (typically 86400 = 24 hours)
+                    example: 86400
+                  access_token_token_expired:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 timestamp when token expires
+                    example: "2025-11-25T15:30:00"
+              examples:
+                success:
+                  summary: Successful authentication response
+                  value:
+                    access_token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJQUzAwMDAwMSJ9.x"
+                    token_type: "Bearer"
+                    expires_in: 86400
+                    access_token_token_expired: "2025-11-25T15:30:00"
+
+        '400':
+          description: Bad request - Invalid or missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidGrantType:
+                  summary: Invalid grant_type
+                  value:
+                    rt_cd: "1"
+                    msg_cd: "EGW00123"
+                    msg: "Invalid grant_type parameter"
+
+        '401':
+          description: Unauthorized - Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidCredentials:
+                  summary: Invalid APP_KEY or APP_SECRET
+                  value:
+                    rt_cd: "1"
+                    msg_cd: "EGW00401"
+                    msg: "Invalid appkey or appsecret"
+
+        '429':
+          description: Too many requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                rateLimitExceeded:
+                  summary: Rate limit exceeded
+                  value:
+                    rt_cd: "1"
+                    msg_cd: "EGW00429"
+                    msg: "Rate limit exceeded. Please try again later."
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                serverError:
+                  summary: Internal server error
+                  value:
+                    rt_cd: "1"
+                    msg_cd: "EGW00500"
+                    msg: "Internal server error. Please try again later."
+
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - rt_cd
+        - msg_cd
+        - msg
+      properties:
+        rt_cd:
+          type: string
+          description: Return code ("0" = success, "1" = error)
+          example: "1"
+        msg_cd:
+          type: string
+          description: Error message code
+          example: "EGW00401"
+        msg:
+          type: string
+          description: Human-readable error message
+          example: "Invalid appkey or appsecret"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /oauth2/tokenP endpoint
+
+# Rate limiting information
+x-rate-limit:
+  requests_per_second: 1
+  burst: 1
+  policy: sliding_window
+
+# Implementation notes
+x-implementation-notes:
+  - Tokens are valid for 24 hours (86400 seconds)
+  - Store access_token securely (encrypt at rest)
+  - Implement automatic token refresh before expiry
+  - Respect rate limit of 1 request per second
+  - Use exponential backoff for 5xx errors
+  - Do not retry 401/400 errors (invalid credentials)
+  - Log authentication attempts (excluding credentials)
