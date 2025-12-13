@@ -7,6 +7,42 @@ from pathlib import Path
 from src.account.service import AccountService
 from src.account.exceptions import AccountException
 
+# Slack notification messages
+MSG_SLACK_NOT_CONFIGURED = "\n⚠️  Slack notifications not configured in config.yaml"
+MSG_SLACK_DISABLED = "\n⚠️  Slack notifications are disabled in config.yaml"
+MSG_WEBHOOK_MISSING = "\n⚠️  Slack webhook URL not configured"
+MSG_SENDING = "\n📤 Sending to Slack..."
+MSG_ALL_SUCCESS = "\n✅ All {} notifications sent successfully!"
+MSG_PARTIAL_SUCCESS = "\n⚠️  Sent {}/{} notifications"
+
+
+def validate_slack_config(config):
+    """
+    Validate Slack configuration.
+
+    Args:
+        config: Account configuration
+
+    Returns:
+        tuple: (webhook_url, format_type, is_valid, error_message)
+    """
+    # Check if Slack is enabled
+    if not hasattr(config, "notifications") or not config.notifications:
+        return None, None, False, MSG_SLACK_NOT_CONFIGURED
+
+    slack_config = config.notifications.slack
+    if not slack_config.enabled:
+        return None, None, False, MSG_SLACK_DISABLED
+
+    # SECURITY: Never log webhook_url - it contains sensitive credentials
+    webhook_url = slack_config.webhook_url
+    if not webhook_url:
+        return None, None, False, MSG_WEBHOOK_MISSING
+
+    format_type = slack_config.format
+
+    return webhook_url, format_type, True, None
+
 
 def send_to_slack(config, holdings_list):
     """
@@ -15,45 +51,48 @@ def send_to_slack(config, holdings_list):
     Args:
         config: Account configuration
         holdings_list: List of AccountHoldings to send
+
+    Returns:
+        int: Number of successful sends, or -1 if configuration is invalid
     """
     from src.notifications.slack import send_portfolio_update
 
-    # Check if Slack is enabled
-    if not hasattr(config, "notifications") or not config.notifications:
-        print("\n⚠️  Slack notifications not configured in config.yaml")
-        return
+    webhook_url, format_type, is_valid, error_message = validate_slack_config(config)
 
-    slack_config = config.notifications.slack
-    if not slack_config.enabled:
-        print("\n⚠️  Slack notifications are disabled in config.yaml")
-        return
-
-    webhook_url = slack_config.webhook_url
-    if not webhook_url:
-        print("\n⚠️  Slack webhook URL not configured")
-        return
-
-    format_type = slack_config.format
+    if not is_valid:
+        print(error_message)
+        return -1
 
     # Send each holding
-    print("\n📤 Sending to Slack...")
+    print(MSG_SENDING)
     success_count = 0
+    failed_accounts = []
+
     for holdings in holdings_list:
-        if send_portfolio_update(
-            holdings,
-            webhook_url,
-            format_type=format_type,
-            trigger_type="manual_refresh",
-        ):
-            success_count += 1
-            print(f"  ✅ Sent: {holdings.account_id}")
-        else:
-            print(f"  ❌ Failed: {holdings.account_id}")
+        try:
+            if send_portfolio_update(
+                holdings,
+                webhook_url,
+                format_type=format_type,
+                trigger_type="manual_refresh",
+            ):
+                success_count += 1
+                print(f"  ✅ Sent: {holdings.account_id}")
+            else:
+                failed_accounts.append(holdings.account_id)
+                print(f"  ❌ Failed: {holdings.account_id}")
+        except Exception as e:
+            failed_accounts.append(holdings.account_id)
+            print(f"  ❌ Failed: {holdings.account_id} - {str(e)}")
 
     if success_count == len(holdings_list):
-        print(f"\n✅ All {success_count} notifications sent successfully!")
+        print(MSG_ALL_SUCCESS.format(success_count))
     else:
-        print(f"\n⚠️  Sent {success_count}/{len(holdings_list)} notifications")
+        print(MSG_PARTIAL_SUCCESS.format(success_count, len(holdings_list)))
+        if failed_accounts:
+            print(f"     Failed accounts: {', '.join(failed_accounts)}")
+
+    return success_count
 
 
 def display_holdings(holdings, show_details=True):

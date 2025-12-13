@@ -180,3 +180,125 @@ class TestNonStandardAssetHandling:
 
         assert holdings.positions[0].asset_type == AssetType.OPTION
         assert holdings.positions[0].symbol == "OPTION123"
+
+
+class TestConsolidateHoldings:
+    """Test holdings consolidation."""
+
+    def test_consolidate_holdings_preserves_currency_info(self):
+        """Test that consolidation preserves USD/KRW breakdown."""
+        from src.account.service import AccountService
+        from src.account.models import AccountHoldings
+        from datetime import datetime, timezone
+
+        service = AccountService.__new__(AccountService)
+
+        # Domestic account (KRW only)
+        domestic = AccountHoldings(
+            account_id="domestic",
+            timestamp=datetime.now(timezone.utc),
+            cash_balance=Decimal("10000000"),
+            krw_cash_balance=Decimal("10000000"),
+            usd_cash_balance=Decimal("0"),
+            exchange_rate=None,
+            total_value=Decimal("10000000"),
+            positions=[],
+        )
+
+        # Overseas account (USD + KRW)
+        overseas = AccountHoldings(
+            account_id="overseas",
+            timestamp=datetime.now(timezone.utc),
+            cash_balance=Decimal("20000000"),
+            krw_cash_balance=Decimal("5000000"),
+            usd_cash_balance=Decimal("10000"),
+            exchange_rate=Decimal("1500"),
+            total_value=Decimal("20000000"),
+            positions=[],
+        )
+
+        consolidated = service.consolidate_holdings(
+            {"domestic": domestic, "overseas": overseas}
+        )
+
+        assert consolidated.cash_balance == Decimal("30000000")
+        assert consolidated.krw_cash_balance == Decimal("15000000")
+        assert consolidated.usd_cash_balance == Decimal("10000")
+        assert consolidated.exchange_rate == Decimal("1500")
+
+    def test_consolidate_holdings_weighted_exchange_rate(self):
+        """Test weighted average exchange rate calculation."""
+        from src.account.service import AccountService
+        from src.account.models import AccountHoldings
+        from datetime import datetime, timezone
+
+        service = AccountService.__new__(AccountService)
+
+        # Account 1: $10,000 @ 1400
+        account1 = AccountHoldings(
+            account_id="account1",
+            timestamp=datetime.now(timezone.utc),
+            cash_balance=Decimal("14000000"),
+            krw_cash_balance=Decimal("0"),
+            usd_cash_balance=Decimal("10000"),
+            exchange_rate=Decimal("1400"),
+            total_value=Decimal("14000000"),
+            positions=[],
+        )
+
+        # Account 2: $20,000 @ 1500
+        account2 = AccountHoldings(
+            account_id="account2",
+            timestamp=datetime.now(timezone.utc),
+            cash_balance=Decimal("30000000"),
+            krw_cash_balance=Decimal("0"),
+            usd_cash_balance=Decimal("20000"),
+            exchange_rate=Decimal("1500"),
+            total_value=Decimal("30000000"),
+            positions=[],
+        )
+
+        consolidated = service.consolidate_holdings(
+            {"account1": account1, "account2": account2}
+        )
+
+        # Weighted average: (10000*1400 + 20000*1500) / 30000 = 1466.67
+        expected_rate = Decimal("1466.666666666666666666666667")
+        assert consolidated.exchange_rate.quantize(
+            Decimal("0.01")
+        ) == expected_rate.quantize(Decimal("0.01"))
+        assert consolidated.usd_cash_balance == Decimal("30000")
+
+    def test_consolidate_holdings_no_usd(self):
+        """Test consolidation with no USD holdings."""
+        from src.account.service import AccountService
+        from src.account.models import AccountHoldings
+        from datetime import datetime, timezone
+
+        service = AccountService.__new__(AccountService)
+
+        # KRW-only accounts
+        account1 = AccountHoldings(
+            account_id="account1",
+            timestamp=datetime.now(timezone.utc),
+            cash_balance=Decimal("10000000"),
+            total_value=Decimal("10000000"),
+            positions=[],
+        )
+
+        account2 = AccountHoldings(
+            account_id="account2",
+            timestamp=datetime.now(timezone.utc),
+            cash_balance=Decimal("20000000"),
+            total_value=Decimal("20000000"),
+            positions=[],
+        )
+
+        consolidated = service.consolidate_holdings(
+            {"account1": account1, "account2": account2}
+        )
+
+        assert consolidated.cash_balance == Decimal("30000000")
+        assert consolidated.krw_cash_balance is None
+        assert consolidated.usd_cash_balance is None
+        assert consolidated.exchange_rate is None
