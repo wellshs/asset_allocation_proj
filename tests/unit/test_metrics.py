@@ -100,3 +100,47 @@ class TestMetricCalculations:
             metrics.calculate_sharpe_ratio(
                 annualized_return, volatility, risk_free_rate
             )
+
+    def test_annualized_return_handles_total_loss(self):
+        """Test annualized return when base <= 0 (total loss)."""
+        total_return = Decimal("-1.0")  # -100% total loss
+        num_days = 252
+
+        result = metrics.calculate_annualized_return(total_return, num_days)
+
+        # Should return -1.0 (capped at -100%)
+        assert result == Decimal("-1.0")
+
+    def test_annualized_return_handles_extreme_positive(self):
+        """Test annualized return with very large positive returns."""
+        total_return = Decimal("100000.0")  # 10,000,000% return
+        num_days = 252
+
+        result = metrics.calculate_annualized_return(total_return, num_days)
+
+        # Large values are returned as-is (only values > 1e10 are capped)
+        # This is still valid - the function handles it without error
+        assert result > Decimal("1000")  # Verifies no overflow/error occurred
+
+    def test_annualized_return_handles_extreme_negative(self):
+        """Test annualized return with extreme negative returns."""
+        total_return = Decimal("-1.5")  # Loss > 100% (impossible but testing edge case)
+        num_days = 252
+
+        result = metrics.calculate_annualized_return(total_return, num_days)
+
+        # base = 1 + (-1.5) = -0.5, which is <= 0, should return -1.0
+        assert result == Decimal("-1.0")
+
+    def test_annualized_return_short_period(self):
+        """Test annualized return for very short periods."""
+        total_return = Decimal("0.10")  # 10% return
+        num_days = 5  # Very short period
+
+        result = metrics.calculate_annualized_return(total_return, num_days)
+
+        # Should handle without overflow
+        # (1.10)^(252/5) - 1 = (1.10)^50.4 ≈ very large number
+        # Will be capped by edge case handling
+        assert result is not None
+        assert result > Decimal("0")

@@ -170,3 +170,137 @@ class DualMomentumParameters(StrategyParameters):
     def get_required_history_days(self) -> int:
         """Return long window as minimum required history."""
         return self.long_window
+
+
+@dataclass
+class InfiniteBuyingParameters(StrategyParameters):
+    """Configuration for Infinite Buying Method (무한매수법).
+
+    Attributes:
+        divisions: Number of capital divisions (default: 40)
+        take_profit_pct: Take profit percentage above average (default: 10%)
+        phase_threshold: Progress threshold for switching to conservative phase (default: 50%)
+        use_rsi: Whether to use RSI indicator for entry timing
+        rsi_threshold: RSI threshold for entry (if use_rsi=True)
+        conservative_buy_only_below_avg: In phase 2, only buy below average price
+        split_sell_pct_1: First partial sell percentage at +5%
+        split_sell_pct_2: Second partial sell percentage at +10%
+    """
+
+    divisions: int = 40
+    take_profit_pct: Decimal = Decimal("0.10")  # 10%
+    phase_threshold: Decimal = Decimal("0.50")  # 50%
+    use_rsi: bool = False
+    rsi_threshold: int = 30
+    conservative_buy_only_below_avg: bool = True
+    split_sell_pct_1: Decimal = Decimal("0.50")  # 50% at +5%
+    split_sell_pct_2: Decimal = Decimal("0.50")  # 50% at +10%
+
+    def validate(self) -> None:
+        """Validate infinite buying-specific parameters."""
+        super().validate()
+
+        # Only support single asset
+        if len(self.assets) != 1:
+            raise ValueError(
+                f"Infinite Buying Method only supports single asset, got {len(self.assets)}"
+            )
+
+        # Divisions must be positive
+        if self.divisions < 1:
+            raise ValueError(f"divisions must be positive, got {self.divisions}")
+
+        # Divisions should be reasonable
+        if self.divisions > 100:
+            warnings.warn(
+                f"divisions={self.divisions} is very high, may require large capital"
+            )
+
+        # Take profit percentage must be positive
+        if self.take_profit_pct <= 0:
+            raise ValueError(
+                f"take_profit_pct must be positive, got {self.take_profit_pct}"
+            )
+
+        # Phase threshold must be between 0 and 1
+        if not (0 < self.phase_threshold < 1):
+            raise ValueError(
+                f"phase_threshold must be between 0 and 1, got {self.phase_threshold}"
+            )
+
+        # RSI threshold must be valid
+        if self.use_rsi and not (0 < self.rsi_threshold < 100):
+            raise ValueError(
+                f"rsi_threshold must be between 0 and 100, got {self.rsi_threshold}"
+            )
+
+        # Split sell percentages must sum to 1.0
+        if abs(
+            self.split_sell_pct_1 + self.split_sell_pct_2 - Decimal("1.0")
+        ) > Decimal("0.01"):
+            raise ValueError(
+                f"split_sell percentages must sum to 1.0, got {self.split_sell_pct_1 + self.split_sell_pct_2}"
+            )
+
+
+@dataclass
+class ValueRebalancingParameters(StrategyParameters):
+    """Configuration for Value Rebalancing (밸류 리밸런싱).
+
+    Attributes:
+        initial_capital: Initial total capital (V0 + P0)
+        gradient: Gradient value for value path (G)
+        upper_band_pct: Upper band percentage above target value
+        lower_band_pct: Lower band percentage below target value
+        rebalance_frequency: Frequency to check and rebalance (in days)
+        value_growth_rate: Expected annual growth rate for value path
+    """
+
+    initial_capital: Decimal = Decimal("10000")
+    gradient: Decimal = Decimal("10")
+    upper_band_pct: Decimal = Decimal("0.05")  # 5%
+    lower_band_pct: Decimal = Decimal("0.05")  # 5%
+    rebalance_frequency: int = 30  # Monthly
+    value_growth_rate: Decimal = Decimal("0.10")  # 10% annual
+
+    def validate(self) -> None:
+        """Validate value rebalancing-specific parameters."""
+        super().validate()
+
+        # Only support single asset
+        if len(self.assets) != 1:
+            raise ValueError(
+                f"Value Rebalancing only supports single asset, got {len(self.assets)}"
+            )
+
+        # Initial capital must be positive
+        if self.initial_capital <= 0:
+            raise ValueError(
+                f"initial_capital must be positive, got {self.initial_capital}"
+            )
+
+        # Gradient must be positive
+        if self.gradient <= 0:
+            raise ValueError(f"gradient must be positive, got {self.gradient}")
+
+        # Band percentages must be positive
+        if self.upper_band_pct <= 0:
+            raise ValueError(
+                f"upper_band_pct must be positive, got {self.upper_band_pct}"
+            )
+        if self.lower_band_pct <= 0:
+            raise ValueError(
+                f"lower_band_pct must be positive, got {self.lower_band_pct}"
+            )
+
+        # Rebalance frequency must be positive
+        if self.rebalance_frequency < 1:
+            raise ValueError(
+                f"rebalance_frequency must be positive, got {self.rebalance_frequency}"
+            )
+
+        # Growth rate must be reasonable
+        if not (-Decimal("0.5") < self.value_growth_rate < Decimal("1.0")):
+            raise ValueError(
+                f"value_growth_rate must be between -0.5 and 1.0, got {self.value_growth_rate}"
+            )
