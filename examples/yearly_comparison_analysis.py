@@ -1,114 +1,16 @@
 """Yearly Start Date Comparison Analysis.
 
 Compare investment results when starting from different years.
+Uses Michael Edleson/William Bernstein recommended parameters.
 """
 
-import pandas as pd
-import yfinance as yf
+from decimal import Decimal
 
-
-def download_tqqq_data(start_date: str, end_date: str = "2024-12-31") -> pd.DataFrame:
-    """Download TQQQ price data."""
-    tqqq = yf.download(
-        "TQQQ", start=start_date, end=end_date, progress=False, auto_adjust=True
-    )
-    return tqqq
-
-
-def simulate_value_rebalancing(tqqq_data, initial_capital=10000):
-    """Simulate Value Rebalancing strategy."""
-    # Parameters (Michael Edleson / William Bernstein 권장값 + TQQQ 조정)
-    value_growth_rate = 0.10  # 10% annual (Bernstein 7% 기준, TQQQ 조정)
-    rebalance_frequency_days = 30  # Monthly
-
-    # Initialize
-    cash_pool = initial_capital
-    stock_value = 0
-    shares = 0
-
-    start_date = tqqq_data.index[0]
-    last_rebalance = None
-
-    # Track history
-    portfolio_values = []
-    rebalance_dates = []
-    actions = []
-
-    for current_date in tqqq_data.index:
-        current_price = float(tqqq_data.loc[current_date, "Close"])
-
-        # Update stock value
-        stock_value = shares * current_price
-        current_total = stock_value + cash_pool
-
-        # Calculate target value
-        days_since_start = (current_date - start_date).days
-        years = days_since_start / 365.0
-        base_target = initial_capital * ((1 + value_growth_rate) ** years)
-        target_stock_value = base_target * 0.8  # Target 80% in stocks
-
-        # Check if rebalancing needed
-        needs_rebalance = False
-        if last_rebalance is None:
-            needs_rebalance = True
-        else:
-            days_since_rebalance = (current_date - last_rebalance).days
-            if days_since_rebalance >= rebalance_frequency_days:
-                target_allocation = (
-                    target_stock_value / current_total if current_total > 0 else 0.8
-                )
-                current_allocation = (
-                    stock_value / current_total if current_total > 0 else 0
-                )
-
-                if abs(current_allocation - target_allocation) > 0.1:
-                    needs_rebalance = True
-
-        # Rebalance if needed
-        action = "hold"
-        if needs_rebalance:
-            target_shares = (
-                target_stock_value / current_price if current_price > 0 else 0
-            )
-
-            if stock_value > target_stock_value * 1.1:
-                shares_to_sell = shares - target_shares
-                if shares_to_sell > 0:
-                    cash_from_sale = shares_to_sell * current_price * 0.999
-                    cash_pool += cash_from_sale
-                    shares = target_shares
-                    action = "sell"
-
-            elif stock_value < target_stock_value * 0.9:
-                cash_needed = target_stock_value - stock_value
-                cash_to_use = min(cash_needed, cash_pool * 0.95)
-                if cash_to_use > 0:
-                    shares_to_buy = (cash_to_use * 0.999) / current_price
-                    shares += shares_to_buy
-                    cash_pool -= cash_to_use
-                    action = "buy"
-
-            if action != "hold":
-                last_rebalance = current_date
-                rebalance_dates.append(current_date)
-                actions.append(action)
-
-        # Update stock value after rebalance
-        stock_value = shares * current_price
-        total_value = stock_value + cash_pool
-
-        portfolio_values.append(
-            {
-                "date": current_date,
-                "total_value": total_value,
-            }
-        )
-
-    return {
-        "final_value": total_value,
-        "rebalance_count": len(rebalance_dates),
-        "portfolio_values": pd.DataFrame(portfolio_values),
-    }
+from src.analysis.data_downloader import download_price_data, DataDownloadError
+from src.analysis.value_rebalancing_simulator import (
+    ValueRebalancingSimulator,
+    ValueRebalancingParameters,
+)
 
 
 def calculate_max_drawdown(values):
@@ -123,8 +25,12 @@ def analyze_year(start_year, end_date="2024-12-31", initial_capital=10000):
     """Analyze starting from a specific year."""
     start_date = f"{start_year}-01-01"
 
-    # Download data
-    tqqq = download_tqqq_data(start_date, end_date)
+    # Download data with error handling
+    try:
+        tqqq = download_price_data("TQQQ", start_date, end_date)
+    except DataDownloadError as e:
+        print(f"Warning: Failed to download data for {start_year}: {e}")
+        return None
 
     if len(tqqq) == 0:
         return None
@@ -147,13 +53,28 @@ def analyze_year(start_year, end_date="2024-12-31", initial_capital=10000):
     drawdown = (cumulative - running_max) / running_max
     bh_max_dd = float(drawdown.min()) * 100
 
-    # Value rebalancing
-    vr_result = simulate_value_rebalancing(tqqq, initial_capital)
-    vr_final_value = vr_result["final_value"]
+    # Value rebalancing - configure parameters
+    params = ValueRebalancingParameters(
+        value_growth_rate=Decimal(
+            "0.10"
+        ),  # 10% annual (Bernstein 7% + TQQQ adjustment)
+        rebalance_frequency_days=30,  # Monthly
+        initial_capital=Decimal(str(initial_capital)),
+    )
+
+    # Run simulation
+    simulator = ValueRebalancingSimulator(params)
+    try:
+        vr_result = simulator.simulate(tqqq)
+    except (ValueError, KeyError) as e:
+        print(f"Warning: Simulation failed for {start_year}: {e}")
+        return None
+
+    vr_final_value = float(vr_result.final_value)
     vr_return = ((vr_final_value / initial_capital) - 1) * 100
 
     # Calculate VR volatility and max drawdown
-    vr_values = vr_result["portfolio_values"]["total_value"]
+    vr_values = vr_result.portfolio_values["total_value"]
     vr_daily_returns = vr_values.pct_change().dropna()
     vr_volatility = float(vr_daily_returns.std()) * (252**0.5) * 100
     vr_max_dd = calculate_max_drawdown(vr_values)
@@ -179,7 +100,7 @@ def analyze_year(start_year, end_date="2024-12-31", initial_capital=10000):
         "vr_return": vr_return,
         "vr_volatility": vr_volatility,
         "vr_max_dd": vr_max_dd,
-        "vr_rebalances": vr_result["rebalance_count"],
+        "vr_rebalances": vr_result.rebalance_count,
         # Comparison
         "excess_return": vr_return - bh_return,
         "volatility_reduction": bh_volatility - vr_volatility,
