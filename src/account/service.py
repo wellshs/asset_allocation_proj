@@ -60,6 +60,20 @@ class AccountService:
                 account_number=account_config.credentials.account_number,
                 status=AccountStatus.DISCONNECTED,
             )
+        else:
+            # Update account number if config has changed
+            if account.account_number != account_config.credentials.account_number:
+                logger.info(
+                    f"Account number changed for {account_name}: "
+                    f"{account.account_number} -> {account_config.credentials.account_number}"
+                )
+                account.account_number = account_config.credentials.account_number
+                # Invalidate cached token since account number changed
+                account.access_token = None
+                account.token_expiry = None
+                account.status = AccountStatus.DISCONNECTED
+                # Remove old cache entry
+                self._token_cache.remove(account_config.name)
 
         # Authenticate if needed (token expired or not authenticated)
         if not account.is_authenticated():

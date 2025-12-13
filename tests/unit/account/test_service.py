@@ -52,6 +52,73 @@ class TestAccountServiceGetHoldings:
         assert holdings.cash_balance == Decimal("1000000")
         assert len(holdings.positions) == 2
 
+    @patch("src.account.service.TokenCache")
+    @patch("src.account.service.load_config")
+    @patch("src.account.service.authenticate")
+    @patch("src.account.service.get_provider")
+    def test_account_number_changed_in_config(
+        self, mock_get_provider, mock_auth, mock_load_config, mock_token_cache
+    ):
+        """Test that account number changes in config are detected and handled."""
+        from src.account.service import AccountService
+        from src.account.models import BrokerageAccount, AccountStatus
+        from tests.fixtures.mock_portfolios import create_mock_holdings_with_positions
+
+        # Mock cached account with old account number
+        old_account = BrokerageAccount(
+            account_id="Test Account",
+            provider="korea_investment",
+            account_number="0000000000",  # Old account number
+            status=AccountStatus.CONNECTED,
+            access_token="old_token",
+        )
+        old_account.token_expiry = None  # Make it appear expired
+
+        mock_cache_instance = Mock()
+        mock_cache_instance.get.return_value = old_account
+        mock_token_cache.return_value = mock_cache_instance
+
+        # Mock config with new account number
+        mock_config = Mock()
+        mock_account = Mock()
+        mock_account.name = "Test Account"
+        mock_account.enabled = True
+        mock_account.provider = "korea_investment"
+        mock_account.credentials = Mock()
+        mock_account.credentials.account_number = "1234567890"  # New account number
+        mock_config.accounts = [mock_account]
+        mock_load_config.return_value = mock_config
+
+        # Mock authentication
+        mock_authenticated = BrokerageAccount(
+            account_id="Test Account",
+            provider="korea_investment",
+            account_number="1234567890",
+            status=AccountStatus.CONNECTED,
+            access_token="new_token",
+        )
+        mock_authenticated.token_expiry = None
+        mock_auth.return_value = mock_authenticated
+
+        # Mock provider
+        mock_provider = Mock()
+        mock_provider.fetch_holdings.return_value = (
+            create_mock_holdings_with_positions()
+        )
+        mock_get_provider.return_value = mock_provider
+
+        service = AccountService("config.yaml")
+        holdings = service.get_holdings("Test Account")
+
+        # Verify cache was cleared for old account number
+        mock_cache_instance.remove.assert_called_once_with("Test Account")
+
+        # Verify re-authentication was triggered
+        mock_auth.assert_called_once()
+
+        # Verify holdings were fetched successfully
+        assert holdings.cash_balance == Decimal("1000000")
+
 
 class TestIncompleteDataHandling:
     """Test handling of incomplete data."""

@@ -101,9 +101,12 @@ class AccountHoldings:
     Attributes:
         account_id: Account identifier
         timestamp: Time when data was retrieved
-        cash_balance: Available cash balance
+        cash_balance: Available cash balance (total in KRW)
         positions: List of security positions
         total_value: Total account value (cash + positions)
+        krw_cash_balance: KRW cash balance (optional, for breakdown display)
+        usd_cash_balance: USD cash balance (optional, for breakdown display)
+        exchange_rate: USD to KRW exchange rate (optional)
     """
 
     account_id: str
@@ -111,6 +114,9 @@ class AccountHoldings:
     cash_balance: Decimal
     positions: list[SecurityPosition]
     total_value: Decimal
+    krw_cash_balance: Optional[Decimal] = None
+    usd_cash_balance: Optional[Decimal] = None
+    exchange_rate: Optional[Decimal] = None
 
     def to_portfolio_state(self):
         """

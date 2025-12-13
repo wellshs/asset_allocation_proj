@@ -91,10 +91,18 @@ class TestKoreaInvestmentFetchHoldings:
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
             mock_data = json.load(f)
 
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_data["holdings_with_positions"]
-        mock_get.return_value = mock_response
+        # Mock domestic response
+        mock_domestic = Mock()
+        mock_domestic.status_code = 200
+        mock_domestic.json.return_value = mock_data["holdings_with_positions"]
+
+        # Mock overseas response
+        mock_overseas = Mock()
+        mock_overseas.status_code = 200
+        mock_overseas.json.return_value = mock_data["overseas_holdings_with_positions"]
+
+        # Return domestic first, then overseas
+        mock_get.side_effect = [mock_domestic, mock_overseas]
 
         provider = KoreaInvestmentProvider()
         account = BrokerageAccount(
@@ -114,10 +122,16 @@ class TestKoreaInvestmentFetchHoldings:
         holdings = provider.fetch_holdings(account, credentials)
 
         assert holdings.account_id == "test"
-        assert holdings.cash_balance == Decimal("1000000")
-        assert len(holdings.positions) == 2
+        # Cash = domestic (1,000,000) + overseas (1,000 USD * 1,320 = 1,320,000) = 2,320,000
+        assert holdings.cash_balance == Decimal("2320000")
+        # Positions = 2 domestic + 2 overseas = 4
+        assert len(holdings.positions) == 4
+        # Domestic positions
         assert holdings.positions[0].symbol == "005930"
         assert holdings.positions[0].name == "삼성전자"
+        # Overseas positions
+        assert holdings.positions[2].symbol == "AAPL"
+        assert holdings.positions[2].name == "Apple Inc"
 
     @patch("requests.get")
     def test_fetch_holdings_empty(self, mock_get):
@@ -129,10 +143,18 @@ class TestKoreaInvestmentFetchHoldings:
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
             mock_data = json.load(f)
 
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_data["holdings_no_positions"]
-        mock_get.return_value = mock_response
+        # Mock domestic response
+        mock_domestic = Mock()
+        mock_domestic.status_code = 200
+        mock_domestic.json.return_value = mock_data["holdings_no_positions"]
+
+        # Mock overseas response
+        mock_overseas = Mock()
+        mock_overseas.status_code = 200
+        mock_overseas.json.return_value = mock_data["overseas_holdings_no_positions"]
+
+        # Return domestic first, then overseas
+        mock_get.side_effect = [mock_domestic, mock_overseas]
 
         provider = KoreaInvestmentProvider()
         account = BrokerageAccount(
@@ -151,7 +173,8 @@ class TestKoreaInvestmentFetchHoldings:
 
         holdings = provider.fetch_holdings(account, credentials)
 
-        assert holdings.cash_balance == Decimal("1000000")
+        # Cash = domestic (1,000,000) + overseas (500 USD * 1,320 = 660,000) = 1,660,000
+        assert holdings.cash_balance == Decimal("1660000")
         assert len(holdings.positions) == 0
 
 
@@ -166,7 +189,7 @@ class TestAPIResponseParsing:
             mock_data = json.load(f)
 
         provider = KoreaInvestmentProvider()
-        holdings = provider._parse_holdings_response(
+        holdings = provider._parse_domestic_holdings_response(
             "test_account", mock_data["holdings_with_positions"]
         )
 
@@ -187,6 +210,7 @@ class TestErrorHandling:
         from src.account.exceptions import AccountAPIException
         import requests
 
+        # Timeout occurs on first (domestic) request
         mock_get.side_effect = requests.Timeout("Connection timeout")
 
         provider = KoreaInvestmentProvider()
@@ -215,6 +239,7 @@ class TestErrorHandling:
         from src.account.config import AccountCredentials
         from src.account.exceptions import AccountAPIException
 
+        # Server error on first (domestic) request
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
@@ -253,10 +278,23 @@ class TestRateLimitingIntegration:
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
             mock_data = json.load(f)
 
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_data["holdings_with_positions"]
-        mock_get.return_value = mock_response
+        # Mock domestic response
+        mock_domestic = Mock()
+        mock_domestic.status_code = 200
+        mock_domestic.json.return_value = mock_data["holdings_with_positions"]
+
+        # Mock overseas response
+        mock_overseas = Mock()
+        mock_overseas.status_code = 200
+        mock_overseas.json.return_value = mock_data["overseas_holdings_with_positions"]
+
+        # Each fetch_holdings call needs 2 responses (domestic + overseas)
+        mock_get.side_effect = [
+            mock_domestic,
+            mock_overseas,  # First call
+            mock_domestic,
+            mock_overseas,  # Second call
+        ]
 
         provider = KoreaInvestmentProvider()
         account = BrokerageAccount(
