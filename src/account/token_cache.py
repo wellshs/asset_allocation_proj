@@ -1,12 +1,18 @@
 """Token caching for persistent authentication across CLI sessions."""
 
 import json
+import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from cryptography.fernet import InvalidToken
+
 from src.account.crypto import encrypt, decrypt, get_encryption_key_from_env
 from src.account.models import BrokerageAccount, AccountStatus
+
+logger = logging.getLogger(__name__)
 
 
 class TokenCache:
@@ -25,7 +31,7 @@ class TokenCache:
             cache_dir: Directory to store cache files
         """
         self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(mode=0o700, exist_ok=True)  # Restrictive permissions
         self.cache_file = self.cache_dir / "tokens.enc"
 
     def get(self, account_id: str) -> Optional[BrokerageAccount]:
@@ -75,9 +81,18 @@ class TokenCache:
                 self.remove(account_id)
                 return None
 
-        except Exception:
-            # Cache corrupted or decryption failed, ignore
+        except (json.JSONDecodeError, InvalidToken) as e:
+            # Cache corrupted or decryption failed
+            logger.warning(f"Token cache corrupted for {account_id}: {e}")
             return None
+        except (OSError, PermissionError) as e:
+            # File system errors
+            logger.error(f"Error reading token cache: {e}")
+            return None
+        except Exception as e:
+            # Unexpected errors - log and re-raise to avoid hiding bugs
+            logger.error(f"Unexpected error reading token cache for {account_id}: {e}")
+            raise
 
     def set(self, account: BrokerageAccount) -> None:
         """
@@ -98,9 +113,13 @@ class TokenCache:
                 key = get_encryption_key_from_env()
                 decrypted_json = decrypt(encrypted_data, key)
                 cache_data = json.loads(decrypted_json)
-            except Exception:
+            except (json.JSONDecodeError, InvalidToken) as e:
                 # Cache corrupted, start fresh
+                logger.warning(f"Token cache corrupted, starting fresh: {e}")
                 cache_data = {}
+            except (OSError, PermissionError) as e:
+                logger.error(f"Error loading token cache: {e}")
+                raise
 
         # Update cache with new account
         cache_data[account.account_id] = {
@@ -119,8 +138,16 @@ class TokenCache:
         key = get_encryption_key_from_env()
         encrypted_data = encrypt(cache_json, key)
 
+        # Write with restrictive permissions (owner read/write only)
+        # Create file if it doesn't exist with proper permissions
+        if not self.cache_file.exists():
+            self.cache_file.touch(mode=0o600)
+
         with open(self.cache_file, "w") as f:
             f.write(encrypted_data)
+
+        # Ensure permissions are correct (in case umask interfered)
+        os.chmod(self.cache_file, 0o600)
 
     def remove(self, account_id: str) -> None:
         """
@@ -151,9 +178,12 @@ class TokenCache:
             with open(self.cache_file, "w") as f:
                 f.write(encrypted_data)
 
-        except Exception:
-            # Ignore errors
-            pass
+        except (json.JSONDecodeError, InvalidToken) as e:
+            # Cache corrupted, can't remove - log warning
+            logger.warning(f"Could not remove {account_id} from corrupted cache: {e}")
+        except (OSError, PermissionError) as e:
+            logger.error(f"Error removing from token cache: {e}")
+            raise
 
     def clear(self) -> None:
         """Clear all cached tokens."""
