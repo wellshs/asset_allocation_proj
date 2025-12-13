@@ -30,15 +30,41 @@ class PortfolioFormatter:
             }
         )
 
-        # Summary
+        # Summary with currency breakdown
         fields = [
-            {"type": "mrkdwn", "text": f"*Total Value:*\n₩{holdings.total_value:,}"},
-            {"type": "mrkdwn", "text": f"*Cash Balance:*\n₩{holdings.cash_balance:,}"},
+            {
+                "type": "mrkdwn",
+                "text": f"*Total Value:*\n₩{int(holdings.total_value):,}",
+            },
+        ]
+
+        # Cash balance with USD/KRW breakdown
+        if (
+            holdings.krw_cash_balance is not None
+            and holdings.usd_cash_balance is not None
+        ):
+            cash_text = "*Cash Balance:*\n"
+            cash_text += f"KRW: ₩{int(holdings.krw_cash_balance):,}\n"
+            if holdings.usd_cash_balance > 0:
+                usd_in_krw = holdings.usd_cash_balance * (holdings.exchange_rate or 0)
+                cash_text += f"USD: ${float(holdings.usd_cash_balance):,.2f} (₩{int(usd_in_krw):,})\n"
+            cash_text += f"Total: ₩{int(holdings.cash_balance):,}"
+            fields.append({"type": "mrkdwn", "text": cash_text})
+        else:
+            fields.append(
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Cash Balance:*\n₩{int(holdings.cash_balance):,}",
+                }
+            )
+
+        fields.append(
             {
                 "type": "mrkdwn",
                 "text": f"*Holdings:*\n{len(holdings.positions)} securities",
-            },
-        ]
+            }
+        )
+
         blocks.append({"type": "section", "fields": fields})
 
         # Divider
@@ -115,9 +141,21 @@ class PortfolioFormatter:
             }
         )
 
-        # Summary
-        text = f"*Total:* ₩{holdings.total_value:,}\n"
-        text += f"*Cash:* ₩{holdings.cash_balance:,}\n"
+        # Summary with currency breakdown
+        text = f"*Total:* ₩{int(holdings.total_value):,}\n"
+
+        # Cash with USD/KRW breakdown
+        if (
+            holdings.krw_cash_balance is not None
+            and holdings.usd_cash_balance is not None
+        ):
+            text += f"*Cash:* ₩{int(holdings.cash_balance):,}\n"
+            if holdings.usd_cash_balance > 0:
+                text += f"  - KRW: ₩{int(holdings.krw_cash_balance):,}\n"
+                text += f"  - USD: ${float(holdings.usd_cash_balance):,.2f}\n"
+        else:
+            text += f"*Cash:* ₩{int(holdings.cash_balance):,}\n"
+
         text += f"*Holdings:* {len(holdings.positions)} securities"
 
         blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})

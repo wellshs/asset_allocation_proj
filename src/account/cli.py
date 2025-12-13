@@ -8,6 +8,54 @@ from src.account.service import AccountService
 from src.account.exceptions import AccountException
 
 
+def send_to_slack(config, holdings_list):
+    """
+    Send holdings to Slack.
+
+    Args:
+        config: Account configuration
+        holdings_list: List of AccountHoldings to send
+    """
+    from src.notifications.slack import send_portfolio_update
+
+    # Check if Slack is enabled
+    if not hasattr(config, "notifications") or not config.notifications:
+        print("\n⚠️  Slack notifications not configured in config.yaml")
+        return
+
+    slack_config = config.notifications.slack
+    if not slack_config.enabled:
+        print("\n⚠️  Slack notifications are disabled in config.yaml")
+        return
+
+    webhook_url = slack_config.webhook_url
+    if not webhook_url:
+        print("\n⚠️  Slack webhook URL not configured")
+        return
+
+    format_type = slack_config.format
+
+    # Send each holding
+    print("\n📤 Sending to Slack...")
+    success_count = 0
+    for holdings in holdings_list:
+        if send_portfolio_update(
+            holdings,
+            webhook_url,
+            format_type=format_type,
+            trigger_type="manual_refresh",
+        ):
+            success_count += 1
+            print(f"  ✅ Sent: {holdings.account_id}")
+        else:
+            print(f"  ❌ Failed: {holdings.account_id}")
+
+    if success_count == len(holdings_list):
+        print(f"\n✅ All {success_count} notifications sent successfully!")
+    else:
+        print(f"\n⚠️  Sent {success_count}/{len(holdings_list)} notifications")
+
+
 def display_holdings(holdings, show_details=True):
     """
     Display holdings in formatted output.
@@ -61,6 +109,9 @@ def cmd_fetch(args):
     try:
         service = AccountService(config_path)
 
+        # Collect holdings to display/send
+        holdings_list = []
+
         if args.mock:
             print("Using mock data...")
             from tests.fixtures.mock_portfolios import (
@@ -69,20 +120,28 @@ def cmd_fetch(args):
 
             holdings = create_mock_holdings_with_positions()
             display_holdings(holdings)
+            holdings_list.append(holdings)
         elif args.all:
             all_holdings = service.get_all_holdings()
             if args.consolidated:
                 consolidated = service.consolidate_holdings(all_holdings)
                 display_holdings(consolidated)
+                holdings_list.append(consolidated)
             else:
                 for name, holdings in all_holdings.items():
                     display_holdings(holdings)
+                    holdings_list.append(holdings)
         else:
             if not args.account:
                 print("Error: --account is required unless --all is used")
                 return 1
             holdings = service.get_holdings(args.account)
             display_holdings(holdings)
+            holdings_list.append(holdings)
+
+        # Send to Slack if requested
+        if args.slack:
+            send_to_slack(service.config, holdings_list)
 
         return 0
 
@@ -139,6 +198,9 @@ def main():
         "--consolidated", action="store_true", help="Show consolidated view"
     )
     fetch_parser.add_argument("--mock", action="store_true", help="Use mock data")
+    fetch_parser.add_argument(
+        "--slack", action="store_true", help="Send results to Slack"
+    )
     fetch_parser.set_defaults(func=cmd_fetch)
 
     # Status command
