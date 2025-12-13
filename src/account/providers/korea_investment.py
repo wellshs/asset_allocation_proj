@@ -1,5 +1,6 @@
 """Korea Investment & Securities provider implementation."""
 
+import logging
 import requests
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -17,6 +18,8 @@ from src.account.config import AccountCredentials
 from src.account.exceptions import AccountAuthException, AccountAPIException
 from src.account.rate_limiter import RateLimiter
 from src.account.client import with_retry
+
+logger = logging.getLogger(__name__)
 
 
 class KoreaInvestmentProvider(AccountProvider):
@@ -297,9 +300,6 @@ class KoreaInvestmentProvider(AccountProvider):
                 )
 
             data = response.json()
-            import logging
-
-            logger = logging.getLogger(__name__)
             logger.debug(f"Overseas API Response for {account.account_id}: {data}")
 
             # Check for error response
@@ -354,6 +354,14 @@ class KoreaInvestmentProvider(AccountProvider):
         exchange_rate = Decimal(
             summary.get("frst_bltn_exrt", "1")
         )  # Exchange rate (first bulletin exchange rate)
+
+        # Validate exchange rate to prevent valuation errors
+        if exchange_rate == Decimal("1") and cash_balance_usd > 0:
+            logger.warning(
+                f"Exchange rate is 1.0 for account {account_id} with USD balance ${cash_balance_usd}. "
+                "This may indicate missing exchange rate data from API."
+            )
+
         cash_balance_krw = cash_balance_usd * exchange_rate
 
         # Total value in KRW (evaluation amount)
