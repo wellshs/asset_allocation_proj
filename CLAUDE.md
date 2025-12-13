@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-11-24
 
 ## Active Technologies
+- Python 3.11+ + pandas (≥2.0), numpy (≥1.24), existing dataclasses/Decimal for precision (003-dynamic-allocation)
+- CSV-based historical price data (existing CSVDataProvider) (003-dynamic-allocation)
 
 - Python 3.11+ + pandas (≥2.0), numpy (≥1.24), pytest (≥7.0), hypothesis (≥6.0), requests (≥2.31) (001-backtesting-logic)
 - Python 3.11+ + cryptography (≥41.0), pydantic (≥2.0), PyYAML (≥6.0), tenacity (≥8.2), requests (≥2.31) (002-account-integration)
@@ -36,6 +38,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 003-dynamic-allocation: Added Python 3.11+ + pandas (≥2.0), numpy (≥1.24), existing dataclasses/Decimal for precision
 
 - 002-account-integration: Added Python 3.11+ + cryptography (≥41.0), pydantic (≥2.0), PyYAML (≥6.0), tenacity (≥8.2) for brokerage account integration and Slack notifications
 - 001-backtesting-logic: Added Python 3.11+ + pandas (≥2.0), numpy (≥1.24), pytest (≥7.0), hypothesis (≥6.0), requests (≥2.31)

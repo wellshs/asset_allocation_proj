@@ -1,9 +1,13 @@
 """Logging configuration for account operations."""
 
 import logging
+import os
 import re
 from functools import wraps
 
+
+# Ensure logs directory exists
+os.makedirs("logs", exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
