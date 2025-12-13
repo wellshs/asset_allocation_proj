@@ -20,9 +20,21 @@ def display_holdings(holdings, show_details=True):
     print(f"Account: {holdings.account_id}")
     print(f"Timestamp: {holdings.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
-    print(f"Cash Balance:      ₩{holdings.cash_balance:,}")
-    print(f"Total Value:       ₩{holdings.total_value:,}")
-    print(f"Holdings:          {len(holdings.positions)} securities")
+
+    # Show currency breakdown if available
+    if holdings.krw_cash_balance is not None and holdings.usd_cash_balance is not None:
+        print(f"Cash Balance (KRW): ₩{int(holdings.krw_cash_balance):,}")
+        if holdings.usd_cash_balance > 0:
+            usd_in_krw = holdings.usd_cash_balance * (holdings.exchange_rate or 0)
+            print(
+                f"Cash Balance (USD): ${float(holdings.usd_cash_balance):,.2f} (₩{int(usd_in_krw):,} @ ₩{float(holdings.exchange_rate):,.2f})"
+            )
+        print(f"Total Cash:         ₩{int(holdings.cash_balance):,}")
+    else:
+        print(f"Cash Balance:       ₩{int(holdings.cash_balance):,}")
+
+    print(f"Total Value:        ₩{int(holdings.total_value):,}")
+    print(f"Holdings:           {len(holdings.positions)} securities")
     print(f"{'='*60}")
 
     if show_details and holdings.positions:

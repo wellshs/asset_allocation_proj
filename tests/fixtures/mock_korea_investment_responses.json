@@ -55,5 +55,57 @@
     "rt_cd": "1",
     "msg_cd": "EGW00401",
     "msg1": "Invalid credentials"
+  },
+  "overseas_holdings_with_positions": {
+    "rt_cd": "0",
+    "msg_cd": "MCA00000",
+    "msg1": "정상처리 되었습니다.",
+    "output1": [
+      {
+        "ovrs_pdno": "AAPL",
+        "ovrs_item_name": "Apple Inc",
+        "ovrs_cblc_qty": "10",
+        "pchs_avg_pric": "150.00",
+        "ovrs_now_pric1": "175.00",
+        "ovrs_stck_evlu_amt": "23100000",
+        "evlu_pfls_amt": "330000"
+      },
+      {
+        "ovrs_pdno": "TSLA",
+        "ovrs_item_name": "Tesla Inc",
+        "ovrs_cblc_qty": "5",
+        "pchs_avg_pric": "200.00",
+        "ovrs_now_pric1": "250.00",
+        "ovrs_stck_evlu_amt": "16500000",
+        "evlu_pfls_amt": "330000"
+      }
+    ],
+    "output2": [
+      {
+        "crcy_cd": "USD",
+        "frcr_dncl_amt_2": "1000.00",
+        "frst_bltn_exrt": "1320.00",
+        "frcr_evlu_amt2": "41000000"
+      }
+    ]
+  },
+  "overseas_holdings_no_positions": {
+    "rt_cd": "0",
+    "msg_cd": "MCA00000",
+    "msg1": "정상처리 되었습니다.",
+    "output1": [],
+    "output2": [
+      {
+        "crcy_cd": "USD",
+        "frcr_dncl_amt_2": "500.00",
+        "frst_bltn_exrt": "1320.00",
+        "frcr_evlu_amt2": "660000"
+      }
+    ]
+  },
+  "overseas_holdings_error": {
+    "rt_cd": "1",
+    "msg_cd": "EGW00123",
+    "msg1": "해당서비스가 불가합니다"
   }
 }

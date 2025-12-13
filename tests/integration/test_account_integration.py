@@ -25,13 +25,19 @@ class TestEndToEndAuthenticationAndFetch:
             },
         )
 
-        # Mock holdings
+        # Mock holdings (domestic + overseas)
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
             mock_data = json.load(f)
 
-        mock_get.return_value = Mock(
+        # Mock domestic and overseas responses
+        mock_domestic = Mock(
             status_code=200, json=lambda: mock_data["holdings_with_positions"]
         )
+        mock_overseas = Mock(
+            status_code=200,
+            json=lambda: mock_data["overseas_holdings_with_positions"],
+        )
+        mock_get.side_effect = [mock_domestic, mock_overseas]
 
         # Create account
         account = BrokerageAccount(
@@ -111,16 +117,22 @@ class TestRetryOnTransientFailure:
         from src.account.models import BrokerageAccount, AccountStatus
         from src.account.config import AccountCredentials
 
-        # First two calls fail, third succeeds
+        # First two domestic calls fail, third succeeds, then overseas succeeds
         import json
 
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
             mock_data = json.load(f)
 
         mock_get.side_effect = [
-            Mock(status_code=500, text="Server Error"),
-            Mock(status_code=500, text="Server Error"),
-            Mock(status_code=200, json=lambda: mock_data["holdings_with_positions"]),
+            Mock(status_code=500, text="Server Error"),  # Domestic fail 1
+            Mock(status_code=500, text="Server Error"),  # Domestic fail 2
+            Mock(
+                status_code=200, json=lambda: mock_data["holdings_with_positions"]
+            ),  # Domestic success
+            Mock(
+                status_code=200,
+                json=lambda: mock_data["overseas_holdings_with_positions"],
+            ),  # Overseas success
         ]
 
         provider = KoreaInvestmentProvider()
@@ -140,4 +152,4 @@ class TestRetryOnTransientFailure:
 
         holdings = provider.fetch_holdings(account, credentials)
         assert holdings is not None
-        assert mock_get.call_count == 3
+        assert mock_get.call_count == 4  # 3 domestic (2 fail + 1 success) + 1 overseas
