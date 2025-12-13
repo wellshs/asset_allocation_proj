@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from src.account.models import BrokerageAccount, AccountHoldings
+from src.account.config import AccountCredentials
 
 
 @dataclass
@@ -48,12 +49,15 @@ class AccountProvider(ABC):
         pass
 
     @abstractmethod
-    def fetch_holdings(self, account: BrokerageAccount) -> AccountHoldings:
+    def fetch_holdings(
+        self, account: BrokerageAccount, credentials: AccountCredentials = None
+    ) -> AccountHoldings:
         """
         Fetch current holdings for the authenticated account.
 
         Args:
             account: Authenticated account
+            credentials: API credentials (optional, provider-dependent)
 
         Returns:
             AccountHoldings: Current holdings and cash balance

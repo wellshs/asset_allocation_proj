@@ -87,12 +87,15 @@ class KoreaInvestmentProvider(AccountProvider):
             raise AccountAuthException(f"Network error during authentication: {str(e)}")
 
     @with_retry
-    def fetch_holdings(self, account: BrokerageAccount) -> AccountHoldings:
+    def fetch_holdings(
+        self, account: BrokerageAccount, credentials: AccountCredentials = None
+    ) -> AccountHoldings:
         """
         Fetch current holdings from Korea Investment & Securities.
 
         Args:
             account: Authenticated account
+            credentials: API credentials (required for API calls)
 
         Returns:
             AccountHoldings: Current holdings and cash balance
@@ -104,6 +107,9 @@ class KoreaInvestmentProvider(AccountProvider):
         if not account.is_authenticated():
             raise AccountAuthException("Account is not authenticated")
 
+        if not credentials:
+            raise AccountAuthException("Credentials are required for API calls")
+
         url = f"{self.BASE_URL}{self.HOLDINGS_ENDPOINT}"
 
         # Split account number: first 8 digits + last 2 digits
@@ -112,8 +118,8 @@ class KoreaInvestmentProvider(AccountProvider):
 
         headers = {
             "authorization": f"Bearer {account.access_token}",
-            "appkey": account.account_number,  # This should come from credentials
-            "appsecret": "secret",  # This should come from credentials
+            "appkey": credentials.app_key,
+            "appsecret": credentials.app_secret,
             "tr_id": "TTTC8434R",  # Real trading
         }
 
@@ -127,6 +133,8 @@ class KoreaInvestmentProvider(AccountProvider):
             "FUND_STTL_ICLD_YN": "N",
             "FNCG_AMT_AUTO_RDPT_YN": "N",
             "PRCS_DVSN": "00",
+            "CTX_AREA_FK100": "",  # Continuous query key (empty for first request)
+            "CTX_AREA_NK100": "",  # Continuous query key (empty for first request)
         }
 
         try:
@@ -159,16 +167,38 @@ class KoreaInvestmentProvider(AccountProvider):
         Returns:
             AccountHoldings: Parsed holdings
         """
-        output1 = data.get("output1", {})
+        output1 = data.get("output1", [])
         output2 = data.get("output2", [])
 
-        # Parse cash balance
-        cash_balance = Decimal(output1.get("dnca_tot_amt", "0"))
-        total_value = Decimal(output1.get("tot_evlu_amt", "0"))
+        # Handle different response structures:
+        # - When holdings exist: output1=dict (summary), output2=list (stocks)
+        # - When no holdings: output1=list (empty), output2=list (summary)
+        if isinstance(output1, dict):
+            # Mock/test data structure or some API responses
+            summary = output1
+            stock_list = output2  # output2 contains stock positions
+        elif isinstance(output1, list) and len(output1) > 0:
+            # List with stock data
+            if "pdno" in output1[0]:
+                # output1 contains stocks
+                summary = output2[0] if len(output2) > 0 else {}
+                stock_list = output1
+            else:
+                # output1 contains summary
+                summary = output1[0]
+                stock_list = []
+        else:
+            # Empty output1, use output2 for summary
+            summary = output2[0] if len(output2) > 0 else {}
+            stock_list = []
+
+        # Parse cash balance and total value
+        cash_balance = Decimal(summary.get("dnca_tot_amt", "0"))
+        total_value = Decimal(summary.get("tot_evlu_amt", "0"))
 
         # Parse positions
         positions = []
-        for item in output2:
+        for item in stock_list:
             position = SecurityPosition(
                 symbol=item.get("pdno", ""),
                 name=item.get("prdt_name", ""),

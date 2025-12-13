@@ -7,13 +7,21 @@ from decimal import Decimal
 class TestAccountServiceGetHoldings:
     """Test AccountService.get_holdings()."""
 
+    @patch("src.account.service.TokenCache")
     @patch("src.account.service.load_config")
     @patch("src.account.service.authenticate")
     @patch("src.account.service.get_provider")
-    def test_get_holdings_success(self, mock_get_provider, mock_auth, mock_load_config):
+    def test_get_holdings_success(
+        self, mock_get_provider, mock_auth, mock_load_config, mock_token_cache
+    ):
         """Test successful holdings retrieval."""
         from src.account.service import AccountService
         from tests.fixtures.mock_portfolios import create_mock_holdings_with_positions
+
+        # Mock token cache
+        mock_cache_instance = Mock()
+        mock_cache_instance.get.return_value = None  # No cached token
+        mock_token_cache.return_value = mock_cache_instance
 
         # Mock config
         mock_config = Mock()
