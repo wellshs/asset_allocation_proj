@@ -42,8 +42,27 @@ def calculate_annualized_return(
         raise ValueError("Number of trading days must be positive")
 
     # Convert to float for power calculation, then back to Decimal
-    annualized = float(1 + total_return) ** (252 / num_trading_days) - 1
-    result = Decimal(str(annualized))
+    base = float(1 + total_return)
+    exponent = 252 / num_trading_days
+
+    # Handle edge cases
+    if base <= 0:
+        return Decimal("-1.0")  # Total loss
+
+    try:
+        annualized = base**exponent - 1
+
+        # Check for inf or nan
+        if not (annualized == annualized):  # NaN check
+            return Decimal("0")
+        if annualized > 1e10:  # Very large positive
+            return Decimal("999.9999")
+        if annualized < -1:  # Cap at -100%
+            return Decimal("-1.0")
+
+        result = Decimal(str(annualized))
+    except (ValueError, OverflowError):
+        return Decimal("0")
 
     # Round to 4 decimal places
     return result.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)

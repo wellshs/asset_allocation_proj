@@ -6,9 +6,11 @@ import pytest
 
 from src.models.strategy_params import (
     DualMomentumParameters,
+    InfiniteBuyingParameters,
     MomentumParameters,
     RiskParityParameters,
     StrategyParameters,
+    ValueRebalancingParameters,
 )
 
 
@@ -212,3 +214,213 @@ class TestDualMomentumParameters:
         )
 
         assert params.get_required_history_days() == 200
+
+
+class TestInfiniteBuyingParameters:
+    """Test suite for InfiniteBuyingParameters."""
+
+    def test_valid_infinite_buying_parameters(self):
+        """Test creation with valid infinite buying parameters."""
+        params = InfiniteBuyingParameters(
+            lookback_days=30,
+            assets=["TQQQ"],
+            divisions=40,
+            take_profit_pct=Decimal("0.10"),
+            phase_threshold=Decimal("0.50"),
+        )
+
+        params.validate()
+        assert params.divisions == 40
+        assert params.take_profit_pct == Decimal("0.10")
+        assert params.phase_threshold == Decimal("0.50")
+
+    def test_defaults(self):
+        """Test default values."""
+        params = InfiniteBuyingParameters(lookback_days=30, assets=["TQQQ"])
+
+        params.validate()
+        assert params.divisions == 40
+        assert params.take_profit_pct == Decimal("0.10")
+        assert params.phase_threshold == Decimal("0.50")
+        assert params.use_rsi is False
+        assert params.rsi_threshold == 30
+        assert params.conservative_buy_only_below_avg is True
+
+    def test_single_asset_only(self):
+        """Test that multiple assets are rejected."""
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ", "SOXL"], divisions=40
+        )
+
+        with pytest.raises(ValueError, match="only supports single asset"):
+            params.validate()
+
+    def test_divisions_must_be_positive(self):
+        """Test that divisions must be positive."""
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ"], divisions=0
+        )
+
+        with pytest.raises(ValueError, match="divisions must be positive"):
+            params.validate()
+
+    def test_high_divisions_warning(self):
+        """Test warning for divisions > 100."""
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ"], divisions=150
+        )
+
+        with pytest.warns(UserWarning, match="divisions=150 is very high"):
+            params.validate()
+
+    def test_take_profit_must_be_positive(self):
+        """Test that take_profit_pct must be positive."""
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ"], take_profit_pct=Decimal("0")
+        )
+
+        with pytest.raises(ValueError, match="take_profit_pct must be positive"):
+            params.validate()
+
+    def test_phase_threshold_range(self):
+        """Test that phase_threshold must be between 0 and 1."""
+        # Too low
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ"], phase_threshold=Decimal("0")
+        )
+        with pytest.raises(ValueError, match="must be between 0 and 1"):
+            params.validate()
+
+        # Too high
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ"], phase_threshold=Decimal("1.0")
+        )
+        with pytest.raises(ValueError, match="must be between 0 and 1"):
+            params.validate()
+
+    def test_rsi_threshold_validation(self):
+        """Test RSI threshold validation when use_rsi is True."""
+        # Invalid RSI threshold
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ"], use_rsi=True, rsi_threshold=0
+        )
+        with pytest.raises(ValueError, match="must be between 0 and 100"):
+            params.validate()
+
+        params = InfiniteBuyingParameters(
+            lookback_days=30, assets=["TQQQ"], use_rsi=True, rsi_threshold=100
+        )
+        with pytest.raises(ValueError, match="must be between 0 and 100"):
+            params.validate()
+
+    def test_split_sell_percentages_must_sum_to_one(self):
+        """Test that split sell percentages must sum to 1.0."""
+        params = InfiniteBuyingParameters(
+            lookback_days=30,
+            assets=["TQQQ"],
+            split_sell_pct_1=Decimal("0.3"),
+            split_sell_pct_2=Decimal("0.5"),
+        )
+
+        with pytest.raises(ValueError, match="must sum to 1.0"):
+            params.validate()
+
+
+class TestValueRebalancingParameters:
+    """Test suite for ValueRebalancingParameters."""
+
+    def test_valid_value_rebalancing_parameters(self):
+        """Test creation with valid value rebalancing parameters."""
+        params = ValueRebalancingParameters(
+            lookback_days=30,
+            assets=["SPY"],
+            initial_capital=Decimal("10000"),
+            gradient=Decimal("10"),
+            upper_band_pct=Decimal("0.05"),
+            lower_band_pct=Decimal("0.05"),
+        )
+
+        params.validate()
+        assert params.initial_capital == Decimal("10000")
+        assert params.gradient == Decimal("10")
+        assert params.upper_band_pct == Decimal("0.05")
+
+    def test_defaults(self):
+        """Test default values."""
+        params = ValueRebalancingParameters(lookback_days=30, assets=["SPY"])
+
+        params.validate()
+        assert params.initial_capital == Decimal("10000")
+        assert params.gradient == Decimal("10")
+        assert params.upper_band_pct == Decimal("0.05")
+        assert params.lower_band_pct == Decimal("0.05")
+        assert params.rebalance_frequency == 30
+        assert params.value_growth_rate == Decimal("0.10")
+
+    def test_single_asset_only(self):
+        """Test that multiple assets are rejected."""
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY", "QQQ"], initial_capital=Decimal("10000")
+        )
+
+        with pytest.raises(ValueError, match="only supports single asset"):
+            params.validate()
+
+    def test_initial_capital_must_be_positive(self):
+        """Test that initial_capital must be positive."""
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY"], initial_capital=Decimal("0")
+        )
+
+        with pytest.raises(ValueError, match="initial_capital must be positive"):
+            params.validate()
+
+    def test_gradient_must_be_positive(self):
+        """Test that gradient must be positive."""
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY"], gradient=Decimal("0")
+        )
+
+        with pytest.raises(ValueError, match="gradient must be positive"):
+            params.validate()
+
+    def test_band_percentages_must_be_positive(self):
+        """Test that band percentages must be positive."""
+        # Upper band
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY"], upper_band_pct=Decimal("0")
+        )
+        with pytest.raises(ValueError, match="upper_band_pct must be positive"):
+            params.validate()
+
+        # Lower band
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY"], lower_band_pct=Decimal("0")
+        )
+        with pytest.raises(ValueError, match="lower_band_pct must be positive"):
+            params.validate()
+
+    def test_rebalance_frequency_must_be_positive(self):
+        """Test that rebalance_frequency must be positive."""
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY"], rebalance_frequency=0
+        )
+
+        with pytest.raises(ValueError, match="rebalance_frequency must be positive"):
+            params.validate()
+
+    def test_growth_rate_range(self):
+        """Test that value_growth_rate must be in reasonable range."""
+        # Too low
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY"], value_growth_rate=Decimal("-0.6")
+        )
+        with pytest.raises(ValueError, match="must be between -0.5 and 1.0"):
+            params.validate()
+
+        # Too high
+        params = ValueRebalancingParameters(
+            lookback_days=30, assets=["SPY"], value_growth_rate=Decimal("1.5")
+        )
+        with pytest.raises(ValueError, match="must be between -0.5 and 1.0"):
+            params.validate()
