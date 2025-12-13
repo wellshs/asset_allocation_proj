@@ -27,7 +27,8 @@ def format_usd(amount: Decimal) -> str:
     Returns:
         str: Formatted USD string
     """
-    return f"${float(amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)):,.2f}"
+    rounded = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return f"${rounded:,.2f}"
 
 
 class PortfolioFormatter:

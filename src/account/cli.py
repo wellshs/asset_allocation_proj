@@ -110,9 +110,13 @@ def display_holdings(holdings, show_details=True):
 
     # Show currency breakdown if available
     if holdings.krw_cash_balance is not None and holdings.usd_cash_balance is not None:
+        from decimal import Decimal
+
         print(f"Cash Balance (KRW): ₩{int(holdings.krw_cash_balance):,}")
         if holdings.usd_cash_balance > 0:
-            usd_in_krw = holdings.usd_cash_balance * (holdings.exchange_rate or 0)
+            usd_in_krw = holdings.usd_cash_balance * (
+                holdings.exchange_rate or Decimal("0")
+            )
             print(
                 f"Cash Balance (USD): ${float(holdings.usd_cash_balance):,.2f} (₩{int(usd_in_krw):,} @ ₩{float(holdings.exchange_rate):,.2f})"
             )
