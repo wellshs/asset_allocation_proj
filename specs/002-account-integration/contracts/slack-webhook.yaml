@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: Slack Incoming Webhook API
+  description: Contract specification for sending messages to Slack via incoming webhooks
+  version: 1.0.0
+  contact:
+    name: Slack API Documentation
+    url: https://api.slack.com/messaging/webhooks
+
+servers:
+  - url: https://hooks.slack.com
+    description: Slack webhook server
+
+paths:
+  /services/{T}/{B}/{X}:
+    post:
+      summary: Send Message to Slack Channel
+      description: Post a formatted message to a Slack channel via incoming webhook
+      operationId: sendSlackMessage
+      tags:
+        - Webhooks
+      parameters:
+        - name: T
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Workspace identifier (part of webhook URL)
+        - name: B
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Channel identifier (part of webhook URL)
+        - name: X
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Webhook secret token (part of webhook URL)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: Plain text message (fallback for notifications)
+                  example: "Portfolio Update: Main Account"
+                blocks:
+                  type: array
+                  description: Array of Block Kit layout blocks
+                  items:
+                    type: object
+                  example:
+                    - type: header
+                      text:
+                        type: plain_text
+                        text: "📊 Portfolio Update: Main Account"
+                    - type: section
+                      fields:
+                        - type: mrkdwn
+                          text: "*Total Value:*\n₩10,500,000"
+                        - type: mrkdwn
+                          text: "*Cash Balance:*\n₩1,000,000"
+                    - type: section
+                      text:
+                        type: mrkdwn
+                        text: "*Holdings:*\n• 삼성전자 (005930): 100 shares @ ₩71,000 = ₩7,100,000\n• 카카오 (035720): 50 shares @ ₩50,000 = ₩2,500,000"
+                    - type: context
+                      elements:
+                        - type: mrkdwn
+                          text: "Updated: 2025-11-24 15:30:45 KST"
+                unfurl_links:
+                  type: boolean
+                  description: Unfurl links in message
+                  default: false
+                unfurl_media:
+                  type: boolean
+                  description: Unfurl media in message
+                  default: false
+            examples:
+              portfolioUpdate:
+                summary: Portfolio update notification
+                value:
+                  text: "Portfolio Update: Main Account"
+                  blocks:
+                    - type: "header"
+                      text:
+                        type: "plain_text"
+                        text: "📊 Portfolio Update: Main Account"
+                    - type: "section"
+                      fields:
+                        - type: "mrkdwn"
+                          text: "*Total Value:*\n₩10,500,000"
+                        - type: "mrkdwn"
+                          text: "*Cash Balance:*\n₩1,000,000"
+                        - type: "mrkdwn"
+                          text: "*Change:*\n+₩500,000 (+5.0%)"
+                    - type: "divider"
+                    - type: "section"
+                      text:
+                        type: "mrkdwn"
+                        text: "*Top Holdings:*"
+                    - type: "section"
+                      text:
+                        type: "mrkdwn"
+                        text: "• 삼성전자 (005930)\n  100 shares @ ₩71,000 = ₩7,100,000\n  *P/L:* +₩100,000 (+1.43%)"
+                    - type: "section"
+                      text:
+                        type: "mrkdwn"
+                        text: "• 카카오 (035720)\n  50 shares @ ₩50,000 = ₩2,500,000\n  *P/L:* +₩100,000 (+4.17%)"
+                    - type: "context"
+                      elements:
+                        - type: "mrkdwn"
+                          text: "🕒 Updated: 2025-11-24 15:30:45 KST"
+                  unfurl_links: false
+                  unfurl_media: false
+
+              warningNotification:
+                summary: Notification with data warnings
+                value:
+                  text: "Portfolio Update: Main Account (with warnings)"
+                  blocks:
+                    - type: "header"
+                      text:
+                        type: "plain_text"
+                        text: "📊 Portfolio Update: Main Account"
+                    - type: "section"
+                      fields:
+                        - type: "mrkdwn"
+                          text: "*Total Value:*\n₩10,500,000"
+                        - type: "mrkdwn"
+                          text: "*Cash Balance:*\n₩1,000,000"
+                    - type: "section"
+                      text:
+                        type: "mrkdwn"
+                        text: "*Holdings:*\n• 삼성전자 (005930): 100 shares @ ₩71,000\n• ⚠️ Unknown Security (999999): 10 shares (incomplete data)"
+                    - type: "section"
+                      text:
+                        type: "mrkdwn"
+                        text: "⚠️ *Warnings:*\n• Security 999999: Price data unavailable"
+                    - type: "context"
+                      elements:
+                        - type: "mrkdwn"
+                          text: "🕒 Updated: 2025-11-24 15:30:45 KST"
+
+              truncatedPortfolio:
+                summary: Large portfolio (truncated)
+                value:
+                  text: "Portfolio Update: Main Account"
+                  blocks:
+                    - type: "header"
+                      text:
+                        type: "plain_text"
+                        text: "📊 Portfolio Update: Main Account"
+                    - type: "section"
+                      fields:
+                        - type: "mrkdwn"
+                          text: "*Total Value:*\n₩50,000,000"
+                        - type: "mrkdwn"
+                          text: "*Holdings Count:*\n25 securities"
+                    - type: "section"
+                      text:
+                        type: "mrkdwn"
+                        text: "*Top 10 Holdings:*\n• 삼성전자 (005930): ₩10,000,000\n• 카카오 (035720): ₩5,000,000\n... and 15 more"
+                    - type: "context"
+                      elements:
+                        - type: "mrkdwn"
+                          text: "🕒 Updated: 2025-11-24 15:30:45 KST | Showing top 10 of 25 holdings"
+
+      responses:
+        '200':
+          description: Message successfully posted to Slack
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "ok"
+
+        '400':
+          description: Bad request - Invalid JSON or malformed blocks
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid_payload"
+
+        '403':
+          description: Forbidden - Webhook URL is invalid or revoked
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "action_prohibited"
+
+        '404':
+          description: Not Found - Webhook URL does not exist
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "channel_not_found"
+
+        '410':
+          description: Gone - Webhook URL has been removed
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "webhook_gone"
+
+        '429':
+          description: Too Many Requests - Rate limit exceeded
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "rate_limited"
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retry
+
+        '500':
+          description: Internal Server Error - Slack is experiencing issues
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "internal_error"
+
+components:
+  schemas:
+    BlockKitBlock:
+      type: object
+      description: A Block Kit layout block (see Slack Block Kit documentation)
+      properties:
+        type:
+          type: string
+          enum: [header, section, divider, context, actions, image]
+        text:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [plain_text, mrkdwn]
+            text:
+              type: string
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              text:
+                type: string
+        elements:
+          type: array
+          items:
+            type: object
+
+# Rate limiting information
+x-rate-limit:
+  messages_per_second: 1
+  policy: "Slack rate limits are workspace-specific and not publicly documented"
+  recommendation: "Implement conservative delays (1+ second between messages)"
+
+# Message size limits
+x-size-limits:
+  max_message_size: 3000  # characters
+  max_blocks: 50
+  max_text_length_per_block: 3000
+  recommendation: "Truncate long messages and paginate if necessary"
+
+# Implementation notes
+x-implementation-notes:
+  - Webhook URL format: "https://hooks.slack.com/services/YOUR_WORKSPACE_ID/YOUR_CHANNEL_ID/YOUR_WEBHOOK_TOKEN"
+  - Always include fallback "text" field for notifications
+  - Use Block Kit for rich formatting (blocks field)
+  - Markdown support in mrkdwn type blocks
+  - UTF-8 encoding required for Korean characters
+  - Timeout recommendation: 5 seconds
+  - Retry on 429 (use Retry-After header)
+  - Do not retry 400/403/404/410 (permanent failures)
+  - Retry 500/timeout (transient failures, max 1 retry)
+  - Log delivery status (success/failure with reason)
+  - Validate webhook URL format at configuration time
+  - Test webhook with simple message on first use
+  - Gracefully handle delivery failures (FR-014b)
+  - Never block main operations on Slack failures
+
+# Block Kit resources
+x-external-docs:
+  - name: "Slack Block Kit Builder"
+    url: "https://app.slack.com/block-kit-builder"
+  - name: "Slack Block Kit Documentation"
+    url: "https://api.slack.com/block-kit"
+  - name: "Incoming Webhooks Documentation"
+    url: "https://api.slack.com/messaging/webhooks"
