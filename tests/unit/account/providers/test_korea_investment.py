@@ -85,6 +85,7 @@ class TestKoreaInvestmentFetchHoldings:
         """Test fetching holdings with multiple positions."""
         from src.account.providers.korea_investment import KoreaInvestmentProvider
         from src.account.models import BrokerageAccount, AccountStatus
+        from src.account.config import AccountCredentials
 
         # Load mock response
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
@@ -104,8 +105,13 @@ class TestKoreaInvestmentFetchHoldings:
             access_token="test_token",
             token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
+        credentials = AccountCredentials(
+            app_key="test_key",
+            app_secret="test_secret",
+            account_number="1234567890",
+        )
 
-        holdings = provider.fetch_holdings(account)
+        holdings = provider.fetch_holdings(account, credentials)
 
         assert holdings.account_id == "test"
         assert holdings.cash_balance == Decimal("1000000")
@@ -118,6 +124,7 @@ class TestKoreaInvestmentFetchHoldings:
         """Test fetching holdings with no positions."""
         from src.account.providers.korea_investment import KoreaInvestmentProvider
         from src.account.models import BrokerageAccount, AccountStatus
+        from src.account.config import AccountCredentials
 
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
             mock_data = json.load(f)
@@ -136,8 +143,13 @@ class TestKoreaInvestmentFetchHoldings:
             access_token="test_token",
             token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
+        credentials = AccountCredentials(
+            app_key="test_key",
+            app_secret="test_secret",
+            account_number="1234567890",
+        )
 
-        holdings = provider.fetch_holdings(account)
+        holdings = provider.fetch_holdings(account, credentials)
 
         assert holdings.cash_balance == Decimal("1000000")
         assert len(holdings.positions) == 0
@@ -171,6 +183,7 @@ class TestErrorHandling:
         """Test handling of network timeout."""
         from src.account.providers.korea_investment import KoreaInvestmentProvider
         from src.account.models import BrokerageAccount, AccountStatus
+        from src.account.config import AccountCredentials
         from src.account.exceptions import AccountAPIException
         import requests
 
@@ -185,15 +198,21 @@ class TestErrorHandling:
             access_token="test_token",
             token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
+        credentials = AccountCredentials(
+            app_key="test_key",
+            app_secret="test_secret",
+            account_number="1234567890",
+        )
 
         with pytest.raises(AccountAPIException):
-            provider.fetch_holdings(account)
+            provider.fetch_holdings(account, credentials)
 
     @patch("requests.get")
     def test_server_error_500(self, mock_get):
         """Test handling of 500 server error."""
         from src.account.providers.korea_investment import KoreaInvestmentProvider
         from src.account.models import BrokerageAccount, AccountStatus
+        from src.account.config import AccountCredentials
         from src.account.exceptions import AccountAPIException
 
         mock_response = Mock()
@@ -210,9 +229,14 @@ class TestErrorHandling:
             access_token="test_token",
             token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
+        credentials = AccountCredentials(
+            app_key="test_key",
+            app_secret="test_secret",
+            account_number="1234567890",
+        )
 
         with pytest.raises(AccountAPIException):
-            provider.fetch_holdings(account)
+            provider.fetch_holdings(account, credentials)
 
 
 class TestRateLimitingIntegration:
@@ -223,6 +247,7 @@ class TestRateLimitingIntegration:
         """Test that rate limiting is enforced between requests."""
         from src.account.providers.korea_investment import KoreaInvestmentProvider
         from src.account.models import BrokerageAccount, AccountStatus
+        from src.account.config import AccountCredentials
         import time
 
         with open("tests/fixtures/mock_korea_investment_responses.json") as f:
@@ -242,15 +267,20 @@ class TestRateLimitingIntegration:
             access_token="test_token",
             token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
+        credentials = AccountCredentials(
+            app_key="test_key",
+            app_secret="test_secret",
+            account_number="1234567890",
+        )
 
         # First request should be fast
         start = time.time()
-        provider.fetch_holdings(account)
+        provider.fetch_holdings(account, credentials)
         first_duration = time.time() - start
 
         # Second request should include rate limit delay
         start = time.time()
-        provider.fetch_holdings(account)
+        provider.fetch_holdings(account, credentials)
         second_duration = time.time() - start
 
         # Second request should take at least 1 second longer

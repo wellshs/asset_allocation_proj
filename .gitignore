@@ -57,6 +57,9 @@ config/config.yaml
 config/*.yaml
 !config/config.sample.yaml
 
+# Token cache (contains encrypted tokens)
+.cache/
+
 # Temporary files
 *.tmp
 *.bak

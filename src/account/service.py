@@ -10,6 +10,7 @@ from decimal import Decimal
 from src.account.auth import authenticate, get_provider
 from src.account.config import load_config
 from src.account.logging import logger
+from src.account.token_cache import TokenCache
 
 
 class AccountService:
@@ -23,6 +24,7 @@ class AccountService:
             config_path: Path to configuration file
         """
         self.config = load_config(config_path)
+        self._token_cache = TokenCache()  # File-based token cache
 
     def get_holdings(self, account_name: str) -> AccountHoldings:
         """
@@ -47,21 +49,31 @@ class AccountService:
         if not account_config or not account_config.enabled:
             raise ValueError(f"Account not found or disabled: {account_name}")
 
-        # Create account model
-        account = BrokerageAccount(
-            account_id=account_config.name,
-            provider=account_config.provider,
-            account_number=account_config.credentials.account_number,
-            status=AccountStatus.DISCONNECTED,
-        )
+        # Try to load cached token from file
+        account = self._token_cache.get(account_config.name)
 
-        # Authenticate if needed
+        # Create new account if not cached
+        if account is None:
+            account = BrokerageAccount(
+                account_id=account_config.name,
+                provider=account_config.provider,
+                account_number=account_config.credentials.account_number,
+                status=AccountStatus.DISCONNECTED,
+            )
+
+        # Authenticate if needed (token expired or not authenticated)
         if not account.is_authenticated():
+            logger.info(f"Authenticating account: {account_name}")
             account = authenticate(account, account_config.credentials)
+            # Save to file cache for future CLI invocations
+            self._token_cache.set(account)
+            logger.info(f"Token cached to disk for account: {account_name}")
+        else:
+            logger.info(f"Using cached token from disk for account: {account_name}")
 
         # Fetch holdings
         provider = get_provider(account.provider)
-        holdings = provider.fetch_holdings(account)
+        holdings = provider.fetch_holdings(account, account_config.credentials)
 
         # Validate holdings
         self._validate_holdings(holdings)

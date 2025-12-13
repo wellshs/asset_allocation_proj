@@ -53,7 +53,7 @@ class TestEndToEndAuthenticationAndFetch:
 
         # Fetch holdings
         provider = get_provider("korea_investment")
-        holdings = provider.fetch_holdings(account)
+        holdings = provider.fetch_holdings(account, credentials)
 
         assert holdings.cash_balance > 0
         assert len(holdings.positions) > 0
@@ -109,6 +109,7 @@ class TestRetryOnTransientFailure:
         """Test that 500 errors are retried."""
         from src.account.providers.korea_investment import KoreaInvestmentProvider
         from src.account.models import BrokerageAccount, AccountStatus
+        from src.account.config import AccountCredentials
 
         # First two calls fail, third succeeds
         import json
@@ -131,7 +132,12 @@ class TestRetryOnTransientFailure:
             access_token="test_token",
             token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
         )
+        credentials = AccountCredentials(
+            app_key="test_key",
+            app_secret="test_secret",
+            account_number="1234567890",
+        )
 
-        holdings = provider.fetch_holdings(account)
+        holdings = provider.fetch_holdings(account, credentials)
         assert holdings is not None
         assert mock_get.call_count == 3
