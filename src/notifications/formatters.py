@@ -1,6 +1,34 @@
 """Message formatting for notifications."""
 
+from decimal import Decimal, ROUND_HALF_UP
 from src.account.models import AccountHoldings
+
+
+def format_krw(amount: Decimal) -> str:
+    """
+    Format KRW amount consistently.
+
+    Args:
+        amount: Amount in KRW
+
+    Returns:
+        str: Formatted KRW string
+    """
+    return f"₩{int(amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)):,}"
+
+
+def format_usd(amount: Decimal) -> str:
+    """
+    Format USD amount consistently.
+
+    Args:
+        amount: Amount in USD
+
+    Returns:
+        str: Formatted USD string
+    """
+    rounded = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return f"${rounded:,.2f}"
 
 
 class PortfolioFormatter:
@@ -30,15 +58,43 @@ class PortfolioFormatter:
             }
         )
 
-        # Summary
+        # Summary with currency breakdown
         fields = [
-            {"type": "mrkdwn", "text": f"*Total Value:*\n₩{holdings.total_value:,}"},
-            {"type": "mrkdwn", "text": f"*Cash Balance:*\n₩{holdings.cash_balance:,}"},
+            {
+                "type": "mrkdwn",
+                "text": f"*Total Value:*\n{format_krw(holdings.total_value)}",
+            },
+        ]
+
+        # Cash balance with USD/KRW breakdown
+        if (
+            holdings.krw_cash_balance is not None
+            and holdings.usd_cash_balance is not None
+        ):
+            cash_text = "*Cash Balance:*\n"
+            cash_text += f"KRW: {format_krw(holdings.krw_cash_balance)}\n"
+            if holdings.usd_cash_balance > 0:
+                usd_in_krw = holdings.usd_cash_balance * (
+                    holdings.exchange_rate or Decimal("0")
+                )
+                cash_text += f"USD: {format_usd(holdings.usd_cash_balance)} ({format_krw(usd_in_krw)})\n"
+            cash_text += f"Total: {format_krw(holdings.cash_balance)}"
+            fields.append({"type": "mrkdwn", "text": cash_text})
+        else:
+            fields.append(
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Cash Balance:*\n{format_krw(holdings.cash_balance)}",
+                }
+            )
+
+        fields.append(
             {
                 "type": "mrkdwn",
                 "text": f"*Holdings:*\n{len(holdings.positions)} securities",
-            },
-        ]
+            }
+        )
+
         blocks.append({"type": "section", "fields": fields})
 
         # Divider
@@ -115,9 +171,21 @@ class PortfolioFormatter:
             }
         )
 
-        # Summary
-        text = f"*Total:* ₩{holdings.total_value:,}\n"
-        text += f"*Cash:* ₩{holdings.cash_balance:,}\n"
+        # Summary with currency breakdown
+        text = f"*Total:* {format_krw(holdings.total_value)}\n"
+
+        # Cash with USD/KRW breakdown
+        if (
+            holdings.krw_cash_balance is not None
+            and holdings.usd_cash_balance is not None
+        ):
+            text += f"*Cash:* {format_krw(holdings.cash_balance)}\n"
+            if holdings.usd_cash_balance > 0:
+                text += f"  - KRW: {format_krw(holdings.krw_cash_balance)}\n"
+                text += f"  - USD: {format_usd(holdings.usd_cash_balance)}\n"
+        else:
+            text += f"*Cash:* {format_krw(holdings.cash_balance)}\n"
+
         text += f"*Holdings:* {len(holdings.positions)} securities"
 
         blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})

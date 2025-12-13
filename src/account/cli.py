@@ -7,6 +7,93 @@ from pathlib import Path
 from src.account.service import AccountService
 from src.account.exceptions import AccountException
 
+# Slack notification messages
+MSG_SLACK_NOT_CONFIGURED = "\n⚠️  Slack notifications not configured in config.yaml"
+MSG_SLACK_DISABLED = "\n⚠️  Slack notifications are disabled in config.yaml"
+MSG_WEBHOOK_MISSING = "\n⚠️  Slack webhook URL not configured"
+MSG_SENDING = "\n📤 Sending to Slack..."
+MSG_ALL_SUCCESS = "\n✅ All {} notifications sent successfully!"
+MSG_PARTIAL_SUCCESS = "\n⚠️  Sent {}/{} notifications"
+
+
+def validate_slack_config(config):
+    """
+    Validate Slack configuration.
+
+    Args:
+        config: Account configuration
+
+    Returns:
+        tuple: (webhook_url, format_type, is_valid, error_message)
+    """
+    # Check if Slack is enabled
+    if not hasattr(config, "notifications") or not config.notifications:
+        return None, None, False, MSG_SLACK_NOT_CONFIGURED
+
+    slack_config = config.notifications.slack
+    if not slack_config.enabled:
+        return None, None, False, MSG_SLACK_DISABLED
+
+    # SECURITY: Never log webhook_url - it contains sensitive credentials
+    webhook_url = slack_config.webhook_url
+    if not webhook_url:
+        return None, None, False, MSG_WEBHOOK_MISSING
+
+    format_type = slack_config.format
+
+    return webhook_url, format_type, True, None
+
+
+def send_to_slack(config, holdings_list):
+    """
+    Send holdings to Slack.
+
+    Args:
+        config: Account configuration
+        holdings_list: List of AccountHoldings to send
+
+    Returns:
+        int: Number of successful sends, or -1 if configuration is invalid
+    """
+    from src.notifications.slack import send_portfolio_update
+
+    webhook_url, format_type, is_valid, error_message = validate_slack_config(config)
+
+    if not is_valid:
+        print(error_message)
+        return -1
+
+    # Send each holding
+    print(MSG_SENDING)
+    success_count = 0
+    failed_accounts = []
+
+    for holdings in holdings_list:
+        try:
+            if send_portfolio_update(
+                holdings,
+                webhook_url,
+                format_type=format_type,
+                trigger_type="manual_refresh",
+            ):
+                success_count += 1
+                print(f"  ✅ Sent: {holdings.account_id}")
+            else:
+                failed_accounts.append(holdings.account_id)
+                print(f"  ❌ Failed: {holdings.account_id}")
+        except Exception as e:
+            failed_accounts.append(holdings.account_id)
+            print(f"  ❌ Failed: {holdings.account_id} - {str(e)}")
+
+    if success_count == len(holdings_list):
+        print(MSG_ALL_SUCCESS.format(success_count))
+    else:
+        print(MSG_PARTIAL_SUCCESS.format(success_count, len(holdings_list)))
+        if failed_accounts:
+            print(f"     Failed accounts: {', '.join(failed_accounts)}")
+
+    return success_count
+
 
 def display_holdings(holdings, show_details=True):
     """
@@ -23,9 +110,13 @@ def display_holdings(holdings, show_details=True):
 
     # Show currency breakdown if available
     if holdings.krw_cash_balance is not None and holdings.usd_cash_balance is not None:
+        from decimal import Decimal
+
         print(f"Cash Balance (KRW): ₩{int(holdings.krw_cash_balance):,}")
         if holdings.usd_cash_balance > 0:
-            usd_in_krw = holdings.usd_cash_balance * (holdings.exchange_rate or 0)
+            usd_in_krw = holdings.usd_cash_balance * (
+                holdings.exchange_rate or Decimal("0")
+            )
             print(
                 f"Cash Balance (USD): ${float(holdings.usd_cash_balance):,.2f} (₩{int(usd_in_krw):,} @ ₩{float(holdings.exchange_rate):,.2f})"
             )
@@ -61,6 +152,9 @@ def cmd_fetch(args):
     try:
         service = AccountService(config_path)
 
+        # Collect holdings to display/send
+        holdings_list = []
+
         if args.mock:
             print("Using mock data...")
             from tests.fixtures.mock_portfolios import (
@@ -69,20 +163,28 @@ def cmd_fetch(args):
 
             holdings = create_mock_holdings_with_positions()
             display_holdings(holdings)
+            holdings_list.append(holdings)
         elif args.all:
             all_holdings = service.get_all_holdings()
             if args.consolidated:
                 consolidated = service.consolidate_holdings(all_holdings)
                 display_holdings(consolidated)
+                holdings_list.append(consolidated)
             else:
                 for name, holdings in all_holdings.items():
                     display_holdings(holdings)
+                    holdings_list.append(holdings)
         else:
             if not args.account:
                 print("Error: --account is required unless --all is used")
                 return 1
             holdings = service.get_holdings(args.account)
             display_holdings(holdings)
+            holdings_list.append(holdings)
+
+        # Send to Slack if requested
+        if args.slack:
+            send_to_slack(service.config, holdings_list)
 
         return 0
 
@@ -139,6 +241,9 @@ def main():
         "--consolidated", action="store_true", help="Show consolidated view"
     )
     fetch_parser.add_argument("--mock", action="store_true", help="Use mock data")
+    fetch_parser.add_argument(
+        "--slack", action="store_true", help="Send results to Slack"
+    )
     fetch_parser.set_defaults(func=cmd_fetch)
 
     # Status command

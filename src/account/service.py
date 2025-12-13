@@ -159,12 +159,17 @@ class AccountService:
             all_holdings: Dict of account holdings
 
         Returns:
-            AccountHoldings: Consolidated holdings
+            AccountHoldings: Consolidated holdings with currency breakdown
         """
         from datetime import datetime, timezone
         from collections import defaultdict
 
         total_cash = Decimal("0")
+        total_krw_cash = Decimal("0")
+        total_usd_cash = Decimal("0")
+        weighted_rate_sum = Decimal("0")
+        usd_weight_sum = Decimal("0")
+
         position_map = defaultdict(
             lambda: {
                 "quantity": Decimal("0"),
@@ -176,6 +181,18 @@ class AccountService:
 
         for holdings in all_holdings.values():
             total_cash += holdings.cash_balance
+
+            # Aggregate currency-specific balances
+            if holdings.krw_cash_balance is not None:
+                total_krw_cash += holdings.krw_cash_balance
+            if holdings.usd_cash_balance is not None:
+                total_usd_cash += holdings.usd_cash_balance
+                # Weighted average exchange rate by USD balance
+                if holdings.exchange_rate is not None and holdings.usd_cash_balance > 0:
+                    weighted_rate_sum += (
+                        holdings.exchange_rate * holdings.usd_cash_balance
+                    )
+                    usd_weight_sum += holdings.usd_cash_balance
 
             for position in holdings.positions:
                 pos_data = position_map[position.symbol]
@@ -213,10 +230,18 @@ class AccountService:
 
         total_value = total_cash + sum(p.current_value for p in consolidated_positions)
 
+        # Calculate weighted average exchange rate
+        exchange_rate = None
+        if usd_weight_sum > 0:
+            exchange_rate = weighted_rate_sum / usd_weight_sum
+
         return AccountHoldings(
             account_id="consolidated",
             timestamp=datetime.now(timezone.utc),
             cash_balance=total_cash,
             positions=consolidated_positions,
             total_value=total_value,
+            krw_cash_balance=total_krw_cash if total_krw_cash > 0 else None,
+            usd_cash_balance=total_usd_cash if total_usd_cash > 0 else None,
+            exchange_rate=exchange_rate,
         )
